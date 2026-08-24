@@ -1,0 +1,19 @@
+# Environment / secrets
+.env
+.env.local
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Node (only relevant if you ever add tooling)
+node_modules/
+npm-debug.log*
+
+# Local scratch
+*.log
