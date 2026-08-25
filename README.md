@@ -2,7 +2,7 @@
 
 Internal customer/visit/quotation tracking system for **Cixing Bangladesh Ltd.**, built to replace scattered Excel files, WhatsApp threads, and notebooks with one shared source of truth — without changing how the sales team already works.
 
-Full product spec: [`docs/PRD.md`](docs/PRD.md)
+Full product spec: [`spec/PRD.md`](spec/PRD.md)
 
 ## Status
 
@@ -15,7 +15,7 @@ Full product spec: [`docs/PRD.md`](docs/PRD.md)
 - [ ] Follow-up list
 - [ ] Supabase connection (auth + real data)
 
-See `docs/PRD.md` for the full V1–V4 roadmap.
+See `spec/PRD.md` for the full V1–V4 roadmap.
 
 ## Tech stack
 
@@ -28,39 +28,47 @@ See `docs/PRD.md` for the full V1–V4 roadmap.
 
 ```
 cixing-customer-hub/
-├── public/               # Everything that gets deployed
-│   ├── index.html        # Single-page app entry point
+├── docs/                  # Everything that gets deployed (named "docs" so GitHub Pages can serve it directly)
+│   ├── index.html         # Single-page app entry point
 │   ├── css/
 │   │   └── styles.css
 │   └── js/
-│       └── app.js        # UI logic (will grow into multiple files as features land)
+│       └── app.js         # UI logic (will grow into multiple files as features land)
 ├── db/
-│   └── 01_v1_schema.sql  # V1 database schema (run in Supabase SQL Editor)
-├── docs/
-│   └── PRD.md            # Full product requirements document
+│   └── 01_v1_schema.sql   # V1 database schema (run in Supabase SQL Editor)
+├── spec/
+│   └── PRD.md             # Full product requirements document
 ├── .gitignore
 └── README.md
 ```
+
+> **Note:** the deployable app lives in `docs/`, not `public/`. That's not a typo — GitHub Pages can only serve a site from the repo root or a folder literally named `/docs`, so we named it that on purpose to make GitHub Pages deployment work out of the box. The PRD lives in `spec/` instead so the two don't collide.
 
 ## Running it locally
 
 No install, no build step. Any static file server works. From the project root:
 
 ```bash
-cd public
+cd docs
 python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000` in your browser.
 
-(If you have Node installed, `npx serve public` works just as well.)
+(If you have Node installed, `npx serve docs` works just as well.)
 
 ## Deploying
 
-Once you're happy with a version, `public/` can be deployed as-is to any static host:
+### GitHub Pages (what we're using now)
+1. Push this repo to GitHub.
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
+4. Branch: `main`, folder: **`/docs`**. Save.
+5. GitHub gives you a URL like `https://YOUR-USERNAME.github.io/cixing-customer-hub/` within a minute or two.
 
-- **Netlify** — drag-and-drop the `public/` folder at [app.netlify.com/drop](https://app.netlify.com/drop), or connect this repo and set the **publish directory** to `public`
-- **Cloudflare Pages** — connect this repo, build command: none, output directory: `public`
+### Netlify / Cloudflare Pages (alternative, if you want a custom domain later)
+- **Netlify** — drag-and-drop the `docs/` folder at [app.netlify.com/drop](https://app.netlify.com/drop), or connect this repo and set the **publish directory** to `docs`
+- **Cloudflare Pages** — connect this repo, build command: none, output directory: `docs`
 
 ## Database setup (Supabase)
 
@@ -68,7 +76,7 @@ Not connected yet — this is the next step. When we get there:
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Run `db/01_v1_schema.sql` in the Supabase SQL Editor
-3. Add `public/js/supabaseClient.js` with your project URL and anon key
+3. Add `docs/js/supabaseClient.js` with your project URL and anon key
 4. Swap the sample data in `app.js` for real Supabase queries
 
 ## License
