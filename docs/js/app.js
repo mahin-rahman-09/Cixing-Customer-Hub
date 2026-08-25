@@ -34,6 +34,8 @@ function renderPage(page){
   const c = document.getElementById('content');
   if(page==='home'){
     c.innerHTML = currentRole==='manager' ? managementDashboard() : salesDashboard();
+  } else if(page==='factories'){
+    renderFactoriesPage();
   } else {
     c.innerHTML = placeholder(page);
   }
@@ -118,9 +120,8 @@ function managementDashboard(){
 
 function placeholder(page){
   const names = {
-    factories:['Factory database','This is where every factory record, and the Factory 360 profile page, will live.','Step 4'],
     visits:['Visit history','A logged, searchable list of every factory visit — the core habit this whole system is built around.','Step 3'],
-    followups:['Follow-up list','Today / this week / overdue views, with one-tap complete.','Step 5'],
+    followups:['Follow-up list','Today / this week / overdue views, with one-tap complete.','Step 4'],
     quotations:['Quotation management','Draft through accepted, with line items and full status history.','Version 2'],
     pipeline:['Sales pipeline','Stage-grouped view of every open opportunity, for management.','Version 2'],
     machines:['Machine ownership','Serial numbers, warranty status, and install history per factory.','Version 3'],
