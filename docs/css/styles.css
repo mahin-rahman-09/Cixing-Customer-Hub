@@ -636,3 +636,17 @@
     z-index:200;
   }
   .toast-show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ===== FOLLOW-UP ROW ACTIONS ===== */
+  .row-action{
+    background:var(--canvas);
+    border:1px solid var(--line-strong);
+    color:var(--ink-soft);
+    width:28px;height:28px;
+    border-radius:5px;
+    cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;
+    margin-left:4px;
+  }
+  .row-action:hover{border-color:var(--steel);color:var(--steel-dark);background:var(--steel-light);}
+  .row-action i{font-size:14px;}

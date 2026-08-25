@@ -2,6 +2,7 @@ function doLogin(){
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.add('active');
   renderPage('home');
+  updateFollowUpBadge();
 }
 
 document.querySelectorAll('.nav-item').forEach(item=>{
@@ -36,6 +37,8 @@ function renderPage(page){
     c.innerHTML = currentRole==='manager' ? managementDashboard() : salesDashboard();
   } else if(page==='factories'){
     renderFactoriesPage();
+  } else if(page==='followups'){
+    renderFollowUpsPage();
   } else {
     c.innerHTML = placeholder(page);
   }
@@ -121,7 +124,6 @@ function managementDashboard(){
 function placeholder(page){
   const names = {
     visits:['Visit history','A logged, searchable list of every factory visit — the core habit this whole system is built around.','Step 3'],
-    followups:['Follow-up list','Today / this week / overdue views, with one-tap complete.','Step 4'],
     quotations:['Quotation management','Draft through accepted, with line items and full status history.','Version 2'],
     pipeline:['Sales pipeline','Stage-grouped view of every open opportunity, for management.','Version 2'],
     machines:['Machine ownership','Serial numbers, warranty status, and install history per factory.','Version 3'],

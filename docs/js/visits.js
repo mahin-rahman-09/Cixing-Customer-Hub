@@ -191,6 +191,7 @@ function submitVisit(){
 
   closeVisitModal();
   showToast(`Visit saved${followUpDate ? '. Follow-up set for ' + formatDate(followUpDate) + '.' : '.'}`);
+  updateFollowUpBadge();
 
   // refresh whatever's on screen
   if(currentFactoryId === visitFormFactoryId && document.getElementById('f360-tab-content')){
