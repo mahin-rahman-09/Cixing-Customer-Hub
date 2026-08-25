@@ -126,7 +126,7 @@ function renderFactory360(){
         <div class="f360-sub">${f.group_name && f.group_name!=='—' ? f.group_name+' · ' : ''}${f.location || ''} ${opportunityStars(f.opportunity_score)}</div>
       </div>
       <div class="f360-actions">
-        <button class="btn-secondary" onclick="alert('Visit form — built next step')"><i class="ti ti-clipboard-plus"></i> Log visit</button>
+        <button class="btn-secondary" onclick="openVisitModal('${f.id}')"><i class="ti ti-clipboard-plus"></i> Log visit</button>
         <button class="btn-secondary" onclick="alert('Add contact — built next step')"><i class="ti ti-user-plus"></i> Add contact</button>
       </div>
     </div>

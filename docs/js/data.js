@@ -43,3 +43,10 @@ function getFactory(id){ return sampleFactories.find(f=>f.id===id); }
 function getContactsForFactory(id){ return sampleContacts.filter(c=>c.factory_id===id); }
 function getVisitsForFactory(id){ return sampleVisits.filter(v=>v.factory_id===id).sort((a,b)=> new Date(b.visit_date)-new Date(a.visit_date)); }
 function getContact(id){ return sampleContacts.find(c=>c.id===id); }
+
+let sampleFollowUps = [
+  { id:'fu1', factory_id:'f1', task:'Send revised quotation', responsible_employee:'Rafiqul Haque', due_date:'2026-08-25', priority:'High', status:'Pending' },
+  { id:'fu2', factory_id:'f2', task:'Prepare quotation for 4 units', responsible_employee:'Nasrin Akter', due_date:'2026-08-27', priority:'Medium', status:'Pending' },
+  { id:'fu3', factory_id:'f3', task:'Confirm demo date at our showroom', responsible_employee:'Rafiqul Haque', due_date:'2026-08-25', priority:'Medium', status:'Pending' },
+  { id:'fu4', factory_id:'f4', task:'Follow up on PO status', responsible_employee:'Rafiqul Haque', due_date:'2026-08-25', priority:'High', status:'Pending' },
+];
