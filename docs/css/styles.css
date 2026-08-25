@@ -5,9 +5,9 @@
     --paper:#FFFFFF;
     --line:#DBD8CE;
     --line-strong:#C3BFB2;
-    --steel:#2B4C5C;
-    --steel-light:#DCE6EA;
-    --steel-dark:#17313D;
+    --steel:#0269B8;
+    --steel-light:#E1EDF6;
+    --steel-dark:#013D6B;
     --loom:#A9762F;
     --loom-light:#F2E6D2;
     --success:#3C7A5C;
@@ -42,20 +42,11 @@
     border-radius:var(--radius);
     padding:40px 36px;
   }
-  .login-mark{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:8px;
-  }
-  .login-mark .swatch{
-    width:14px;height:14px;background:var(--steel);border-radius:2px;
-  }
-  .login-mark span{
-    font-family:var(--font-display);
-    font-weight:600;
-    font-size:15px;
-    letter-spacing:.02em;
+  .login-logo{
+    height:30px;
+    width:auto;
+    display:block;
+    margin-bottom:14px;
   }
   .login-sub{
     font-size:13px;
@@ -119,18 +110,24 @@
   }
   .sidebar-brand{
     display:flex;
-    align-items:center;
-    gap:9px;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
     padding:0 20px 22px;
     border-bottom:1px solid rgba(255,255,255,.1);
     margin-bottom:14px;
   }
-  .sidebar-brand .swatch{width:12px;height:12px;background:var(--loom);border-radius:2px;flex-shrink:0;}
+  .sidebar-logo{
+    height:20px;
+    width:auto;
+  }
   .sidebar-brand span{
     font-family:var(--font-display);
     font-weight:600;
-    font-size:14px;
-    line-height:1.25;
+    font-size:13px;
+    letter-spacing:.02em;
+    color:#C7D2D6;
+    text-transform:uppercase;
   }
   .nav-group{padding:0 10px;margin-bottom:4px;}
   .nav-item{
