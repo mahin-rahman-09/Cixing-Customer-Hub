@@ -16,11 +16,16 @@ const VISIT_TYPES = [
 let visitFormFactoryId = null;
 let visitFormContactId = null;
 let visitFormFollowUpDate = '';
+let visitFormEditingId = null;
 
-function openVisitModal(prefillFactoryId){
+function openVisitModal(prefillFactoryId, editVisitId){
   visitFormFactoryId = prefillFactoryId || null;
   visitFormContactId = null;
   visitFormFollowUpDate = '';
+  visitFormEditingId = editVisitId || null;
+  const editing = !!editVisitId;
+  const existing = editing ? sampleVisits.find(v=>v.id===editVisitId) : null;
+  if(existing){ visitFormFactoryId = existing.factory_id; visitFormContactId = existing.contact_id; visitFormFollowUpDate = existing.follow_up_date || ''; }
 
   const root = document.getElementById('visit-modal-root') || (() => {
     const d = document.createElement('div');
@@ -32,14 +37,15 @@ function openVisitModal(prefillFactoryId){
   root.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeVisitModal()">
       <div class="modal-card visit-modal">
-        <h3>Log a visit</h3>
-        <p class="modal-sub">Takes under a minute. Fill what you know — you can always add more later.</p>
+        <h3>${editing ? 'Edit visit' : 'Log a visit'}</h3>
+        <p class="modal-sub">${editing ? 'Update the details below.' : 'Takes under a minute. Fill what you know — you can always add more later.'}</p>
 
         <div class="field">
           <label>Factory *</label>
           <div class="autocomplete-wrap">
             <input id="visit-factory-input" placeholder="Search factory..." autocomplete="off"
               value="${visitFormFactoryId ? getFactory(visitFormFactoryId).factory_name : ''}"
+              ${editing ? 'disabled' : ''}
               oninput="onVisitFactoryInput(this.value)">
             <div id="visit-factory-dropdown" class="autocomplete-dropdown"></div>
           </div>
@@ -55,23 +61,23 @@ function openVisitModal(prefillFactoryId){
         <div class="field">
           <label>Visit type *</label>
           <select id="visit-type-select">
-            ${VISIT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+            ${VISIT_TYPES.map(t=>`<option value="${t}" ${existing && existing.visit_type===t ? 'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
 
         <div class="field">
           <label>Discussion summary</label>
-          <textarea id="visit-summary" rows="3" placeholder="What was discussed..."></textarea>
+          <textarea id="visit-summary" rows="3" placeholder="What was discussed...">${existing ? existing.discussion_summary||'' : ''}</textarea>
         </div>
 
         <div class="field">
           <label>Outcome</label>
-          <input id="visit-outcome" placeholder="e.g. Positive, needs pricing follow-up">
+          <input id="visit-outcome" placeholder="e.g. Positive, needs pricing follow-up" value="${existing ? (existing.outcome||'').replace(/"/g,'&quot;') : ''}">
         </div>
 
         <div class="field">
           <label>Next action</label>
-          <input id="visit-next-action" placeholder="e.g. Send revised quotation">
+          <input id="visit-next-action" placeholder="e.g. Send revised quotation" value="${existing ? (existing.next_action||'').replace(/"/g,'&quot;') : ''}">
         </div>
 
         <div class="field">
@@ -81,21 +87,22 @@ function openVisitModal(prefillFactoryId){
             <button type="button" class="chip" onclick="setFollowUpChip(3,this)">+3 days</button>
             <button type="button" class="chip" onclick="setFollowUpChip(7,this)">+1 week</button>
             <button type="button" class="chip" onclick="setFollowUpChip(14,this)">+2 weeks</button>
-            <input type="date" id="visit-followup-date" onchange="visitFormFollowUpDate=this.value; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip-active'))">
+            <input type="date" id="visit-followup-date" value="${visitFormFollowUpDate}" onchange="visitFormFollowUpDate=this.value; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip-active'))">
           </div>
         </div>
 
         <div class="modal-actions">
           <button class="btn-tertiary" onclick="closeVisitModal()">Cancel</button>
-          <button class="btn-primary" style="width:auto;padding:9px 20px;" onclick="submitVisit()">Save visit</button>
+          <button class="btn-primary" style="width:auto;padding:9px 20px;" onclick="submitVisit()">${editing ? 'Save changes' : 'Save visit'}</button>
         </div>
       </div>
     </div>
   `;
 
   if(visitFormFactoryId){ populateContactSelect(visitFormFactoryId); }
+  if(existing && existing.contact_id){ document.getElementById('visit-contact-select').value = existing.contact_id; }
 
-  document.getElementById('visit-factory-input').focus();
+  document.getElementById(editing ? 'visit-summary' : 'visit-factory-input').focus();
 }
 
 function onVisitFactoryInput(value){
@@ -155,6 +162,17 @@ function submitVisit(){
   const nextAction = document.getElementById('visit-next-action').value.trim();
   const followUpDate = document.getElementById('visit-followup-date').value;
   const contactId = document.getElementById('visit-contact-select').value || null;
+
+  if(visitFormEditingId){
+    const v = sampleVisits.find(x=>x.id===visitFormEditingId);
+    Object.assign(v, { contact_id:contactId, visit_type:visitType, discussion_summary:summary, outcome, next_action:nextAction, follow_up_date:followUpDate });
+    closeVisitModal();
+    showToast('Visit updated.');
+    if(currentFactoryId === visitFormFactoryId && document.getElementById('f360-tab-content')){
+      renderFactory360();
+    }
+    return;
+  }
 
   const today = new Date().toISOString().split('T')[0];
   const visitId = 'v' + Date.now();

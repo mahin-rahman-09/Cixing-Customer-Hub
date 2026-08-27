@@ -127,7 +127,7 @@ function renderFactory360(){
       </div>
       <div class="f360-actions">
         <button class="btn-secondary" onclick="openVisitModal('${f.id}')"><i class="ti ti-clipboard-plus"></i> Log visit</button>
-        <button class="btn-secondary" onclick="alert('Add contact — built next step')"><i class="ti ti-user-plus"></i> Add contact</button>
+        <button class="btn-secondary" onclick="openContactModal('${f.id}')"><i class="ti ti-user-plus"></i> Add contact</button>
       </div>
     </div>
 
@@ -161,37 +161,41 @@ function renderFactoryTabContent(f, contacts, visits){
     el.innerHTML = `
       <div class="panel">
         <div class="overview-grid">
-          ${overviewField('Group', f.group_name)}
-          ${overviewField('Location', f.location)}
-          ${overviewField('Address', f.address)}
-          ${overviewField('Website', f.website)}
-          ${overviewField('Factory type', f.factory_type)}
-          ${overviewField('Total employees', f.total_employees)}
-          ${overviewField('Production capacity', f.production_capacity)}
-          ${overviewField('Current machine brands', f.current_machine_brands)}
-          ${overviewField('Existing Cixing machines', f.existing_cixing_machines)}
-          ${overviewField('Opportunity score', opportunityStars(f.opportunity_score))}
+          ${overviewField('group_name','Group', f.group_name)}
+          ${overviewField('location','Location', f.location)}
+          ${overviewField('address','Address', f.address)}
+          ${overviewField('website','Website', f.website)}
+          ${overviewField('factory_type','Factory type', f.factory_type)}
+          ${overviewField('total_employees','Total employees', f.total_employees)}
+          ${overviewField('production_capacity','Production capacity', f.production_capacity)}
+          ${overviewField('current_machine_brands','Current machine brands', f.current_machine_brands)}
+          ${overviewField('existing_cixing_machines','Existing Cixing machines', f.existing_cixing_machines)}
+          <div>
+            <div class="ov-label">Opportunity score</div>
+            <div class="ov-value">${editableStars(f)}</div>
+          </div>
         </div>
         <div class="overview-notes">
           <div class="ov-label">Notes</div>
-          <div class="ov-value">${f.notes || '—'}</div>
+          <div class="ov-value ov-editable" onclick="editOverviewField(this,'notes',true)" data-field="notes">${f.notes || '<span class="ov-empty">Click to add notes...</span>'}</div>
         </div>
       </div>
     `;
   } else if(currentFactoryTab==='contacts'){
     el.innerHTML = `
       <div class="panel">
-        ${contacts.length ? contacts.map(ct => `
+        ${contacts.filter(ct=>ct.is_active!==false).length ? contacts.filter(ct=>ct.is_active!==false).map(ct => `
           <div class="contact-card ${ct.is_decision_maker?'dm':''}">
-            <div class="contact-avatar">${initials(ct.name)}</div>
-            <div class="contact-info">
+            <div class="contact-avatar" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;">${initials(ct.name)}</div>
+            <div class="contact-info" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;">
               <div class="contact-name">${ct.name} ${ct.is_decision_maker?'<span class="dm-badge">Decision maker</span>':''}</div>
               <div class="contact-role">${ct.designation || ''}${ct.department? ' · '+ct.department : ''}</div>
             </div>
             <div class="contact-links">
-              ${ct.phone ? `<a href="tel:${ct.phone}" title="Call"><i class="ti ti-phone"></i></a>` : ''}
-              ${ct.whatsapp ? `<a href="https://wa.me/${ct.whatsapp.replace('+','')}" target="_blank" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>` : ''}
-              ${ct.email ? `<a href="mailto:${ct.email}" title="Email"><i class="ti ti-mail"></i></a>` : ''}
+              ${ct.phone ? `<a href="tel:${ct.phone}" title="Call" onclick="event.stopPropagation()"><i class="ti ti-phone"></i></a>` : ''}
+              ${ct.whatsapp ? `<a href="https://wa.me/${ct.whatsapp.replace('+','')}" target="_blank" title="WhatsApp" onclick="event.stopPropagation()"><i class="ti ti-brand-whatsapp"></i></a>` : ''}
+              ${ct.email ? `<a href="mailto:${ct.email}" title="Email" onclick="event.stopPropagation()"><i class="ti ti-mail"></i></a>` : ''}
+              <i class="ti ti-pencil" title="Edit" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;color:var(--ink-soft);"></i>
             </div>
           </div>
         `).join('') : `<div class="empty" style="border:none;"><p>No contacts saved yet for this factory.</p></div>`}
@@ -201,10 +205,11 @@ function renderFactoryTabContent(f, contacts, visits){
     el.innerHTML = `
       <div class="panel">
         ${visits.length ? `<div class="visit-timeline">${visits.map(v => `
-          <div class="visit-entry">
+          <div class="visit-entry visit-entry-clickable" onclick="openVisitModal('${f.id}','${v.id}')">
             <div class="visit-entry-head">
               <span class="stage-pill">${v.visit_type}</span>
               <span class="rec-id">${formatDate(v.visit_date)} · ${v.employee}</span>
+              <i class="ti ti-pencil visit-edit-icon"></i>
             </div>
             <p class="visit-summary">${v.discussion_summary || ''}</p>
             ${v.next_action ? `<p class="visit-next"><i class="ti ti-arrow-right"></i> ${v.next_action}${v.follow_up_date ? ' — by '+formatDate(v.follow_up_date) : ''}</p>` : ''}
@@ -218,8 +223,48 @@ function renderFactoryTabContent(f, contacts, visits){
   }
 }
 
-function overviewField(label, value){
-  return `<div><div class="ov-label">${label}</div><div class="ov-value">${value || '—'}</div></div>`;
+function overviewField(key, label, value){
+  const display = (value===null || value===undefined || value==='') ? '<span class="ov-empty">Click to add...</span>' : value;
+  return `<div><div class="ov-label">${label}</div><div class="ov-value ov-editable" data-field="${key}" onclick="editOverviewField(this,'${key}',false)">${display}</div></div>`;
+}
+
+function editOverviewField(el, key, isTextarea){
+  if(el.querySelector('input, textarea')) return; // already editing
+  const f = getFactory(currentFactoryId);
+  const currentVal = f[key] || '';
+  el.classList.remove('ov-editable');
+  el.innerHTML = isTextarea
+    ? `<textarea class="ov-input" rows="3">${currentVal}</textarea>`
+    : `<input class="ov-input" type="text" value="${currentVal}">`;
+  const input = el.querySelector('input, textarea');
+  input.focus();
+  if(!isTextarea) input.select();
+
+  const save = () => {
+    const newVal = input.value.trim();
+    f[key] = newVal;
+    renderFactoryTabContent(f, getContactsForFactory(f.id), getVisitsForFactory(f.id));
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && !isTextarea){ e.preventDefault(); input.blur(); }
+    if(e.key === 'Escape'){ input.value = currentVal; input.blur(); }
+  });
+}
+
+function editableStars(f){
+  let out = '<span class="score-stars score-stars-editable">';
+  for(let i=1;i<=5;i++){
+    out += `<i class="ti ${i<=f.opportunity_score ? 'ti-star-filled star-on' : 'ti-star star-off'}" onclick="setOpportunityScore('${f.id}',${i})"></i>`;
+  }
+  return out + '</span>';
+}
+
+function setOpportunityScore(factoryId, score){
+  const f = getFactory(factoryId);
+  if(!f) return;
+  f.opportunity_score = (f.opportunity_score === score) ? score - 1 : score; // click same star again to reduce by one
+  renderFactoryTabContent(f, getContactsForFactory(f.id), getVisitsForFactory(f.id));
 }
 
 function initials(name){
@@ -256,8 +301,23 @@ function submitAddFactory(){
   const name = document.getElementById('new-factory-name').value.trim();
   const location = document.getElementById('new-factory-location').value.trim();
   if(!name){ alert('Factory name is required.'); return; }
+
+  const possibleDupe = sampleFactories.find(f => isSimilarName(f.factory_name, name));
+  if(possibleDupe && !document.getElementById('new-factory-name').dataset.confirmed){
+    const proceed = confirm(`A factory called "${possibleDupe.factory_name}" already exists. Add "${name}" as a separate factory anyway?`);
+    if(!proceed) return;
+  }
+
   const id = 'f' + (sampleFactories.length + 1) + '_' + Date.now();
   sampleFactories.push({ id, factory_name:name, group_name:'', location, factory_type:'', total_employees:null, opportunity_score:0, current_machine_brands:'', existing_cixing_machines:'', notes:'', last_visit_date:'' });
   closeAddFactoryModal();
   renderFactoryTableBody();
+}
+
+function isSimilarName(a, b){
+  const na = a.trim().toLowerCase();
+  const nb = b.trim().toLowerCase();
+  if(na === nb) return true;
+  if(na.length > 4 && nb.length > 4 && (na.includes(nb) || nb.includes(na))) return true;
+  return false;
 }
