@@ -7,9 +7,11 @@ function doLogin(){
 
 document.querySelectorAll('.nav-item').forEach(item=>{
   item.addEventListener('click', ()=>{
+    const page = item.dataset.page;
     document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-    item.classList.add('active');
-    renderPage(item.dataset.page);
+    document.querySelectorAll(`.nav-item[data-page="${page}"]`).forEach(i=>i.classList.add('active'));
+    renderPage(page);
+    closeMoreSheet();
   });
 });
 
@@ -139,4 +141,94 @@ function placeholder(page){
       <span class="tag">${tag}</span>
     </div>
   `;
+}
+
+// ============================================================
+// GLOBAL SEARCH (top bar) — searches factories + contacts by name/location/phone
+// ============================================================
+function onGlobalSearchInput(value){
+  const dropdown = document.getElementById('global-search-dropdown');
+  const term = value.trim().toLowerCase();
+  if(!term){ dropdown.innerHTML=''; dropdown.classList.remove('open'); return; }
+
+  const factoryMatches = sampleFactories
+    .filter(f => !f.is_deleted)
+    .filter(f => f.factory_name.toLowerCase().includes(term) || (f.location||'').toLowerCase().includes(term))
+    .slice(0,5)
+    .map(f => ({ type:'factory', id:f.id, label:f.factory_name, sub:f.location||'' }));
+
+  const contactMatches = sampleContacts
+    .filter(c => c.is_active !== false)
+    .filter(c => c.name.toLowerCase().includes(term) || (c.phone||'').includes(term))
+    .slice(0,5)
+    .map(c => { const f = getFactory(c.factory_id); return { type:'contact', id:c.factory_id, label:c.name, sub:f ? f.factory_name : '' }; });
+
+  const results = [...factoryMatches, ...contactMatches];
+
+  if(results.length === 0){
+    dropdown.innerHTML = `<div class="autocomplete-item" style="color:var(--ink-soft);">No matches for "${value}"</div>`;
+  } else {
+    dropdown.innerHTML = results.map(r => `
+      <div class="autocomplete-item" onclick="goToGlobalSearchResult('${r.id}')">
+        <i class="ti ${r.type==='factory' ? 'ti-building-factory-2' : 'ti-user'}" style="margin-right:8px;color:var(--ink-soft);"></i>
+        ${r.label}<span class="rec-id"> · ${r.sub}</span>
+      </div>
+    `).join('');
+  }
+  dropdown.classList.add('open');
+}
+
+function goToGlobalSearchResult(factoryId){
+  document.getElementById('global-search-input').value = '';
+  document.getElementById('global-search-dropdown').classList.remove('open');
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-page="factories"]').forEach(i=>i.classList.add('active'));
+  openFactory(factoryId);
+}
+
+document.addEventListener('click', (e)=>{
+  const wrap = document.getElementById('global-search-input');
+  if(wrap && !wrap.closest('.autocomplete-wrap').contains(e.target)){
+    const dd = document.getElementById('global-search-dropdown');
+    if(dd) dd.classList.remove('open');
+  }
+});
+
+// ============================================================
+// MOBILE "MORE" SHEET — the modules that don't fit in the bottom nav
+// ============================================================
+function openMoreSheet(){
+  const root = document.getElementById('more-sheet-root');
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeMoreSheet()">
+      <div class="more-sheet">
+        <div class="more-sheet-handle"></div>
+        <div class="more-sheet-item" data-page="visits"><i class="ti ti-clipboard-text"></i> Visits</div>
+        <div class="more-sheet-item" data-page="quotations"><i class="ti ti-file-invoice"></i> Quotations <span class="tab-tag">V2</span></div>
+        <div class="more-sheet-item" data-page="pipeline"><i class="ti ti-chart-funnel"></i> Pipeline <span class="tab-tag">V2</span></div>
+        <div class="more-sheet-item" data-page="machines"><i class="ti ti-tool"></i> Machines <span class="tab-tag">V3</span></div>
+        <div class="more-sheet-item" data-page="service"><i class="ti ti-settings"></i> Service <span class="tab-tag">V4</span></div>
+        <div class="more-sheet-divider"></div>
+        <div class="more-sheet-role">
+          View as
+          <select onchange="setRole(this.value); closeMoreSheet();">
+            <option value="sales" ${currentRole==='sales'?'selected':''}>Sales exec</option>
+            <option value="manager" ${currentRole==='manager'?'selected':''}>Management</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+  root.querySelectorAll('.more-sheet-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const page = item.dataset.page;
+      document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+      renderPage(page);
+      closeMoreSheet();
+    });
+  });
+}
+function closeMoreSheet(){
+  const root = document.getElementById('more-sheet-root');
+  if(root) root.innerHTML = '';
 }

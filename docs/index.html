@@ -72,7 +72,11 @@
 
   <div class="main">
     <div class="topbar">
-      <div class="topbar-search"><i class="ti ti-search"></i><input placeholder="Search factories, contacts..."></div>
+      <div class="topbar-search autocomplete-wrap">
+        <i class="ti ti-search"></i>
+        <input id="global-search-input" placeholder="Search factories, contacts..." autocomplete="off" oninput="onGlobalSearchInput(this.value)">
+        <div id="global-search-dropdown" class="autocomplete-dropdown"></div>
+      </div>
       <div class="role-toggle">
         View as
         <select id="role-select" onchange="setRole(this.value)">
@@ -88,6 +92,16 @@
   </div>
 
   <button class="fab" onclick="openVisitModal()"><i class="ti ti-plus"></i>Log visit</button>
+
+  <!-- ===== MOBILE BOTTOM NAV ===== -->
+  <nav class="mobile-bottomnav">
+    <div class="mnav-item nav-item" data-page="home"><i class="ti ti-home"></i><span>Home</span></div>
+    <div class="mnav-item nav-item" data-page="factories"><i class="ti ti-building-factory-2"></i><span>Factories</span></div>
+    <div class="mnav-fab" onclick="openVisitModal()"><i class="ti ti-plus"></i></div>
+    <div class="mnav-item nav-item" data-page="followups"><i class="ti ti-checklist"></i><span>Follow-ups</span></div>
+    <div class="mnav-item" onclick="openMoreSheet()"><i class="ti ti-dots"></i><span>More</span></div>
+  </nav>
+  <div id="more-sheet-root"></div>
 </div>
 
 <script src="js/data.js"></script>

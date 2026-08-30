@@ -10,16 +10,36 @@ let currentFactoryTab = 'overview';
 
 function renderFactoriesPage(){
   const c = document.getElementById('content');
+  const locations = [...new Set(sampleFactories.map(f=>f.location).filter(Boolean))].sort();
+  const types = [...new Set(sampleFactories.map(f=>f.factory_type).filter(Boolean))].sort();
+
   c.innerHTML = `
     <div class="page-head">
       <h1>Factories</h1>
       <button class="btn-secondary" onclick="openAddFactoryModal()"><i class="ti ti-plus"></i> Add factory</button>
     </div>
     <div class="list-toolbar">
-      <div class="topbar-search" style="width:280px;">
+      <div class="topbar-search" style="width:240px;">
         <i class="ti ti-search"></i>
         <input id="factory-search-input" placeholder="Search by name or group..." value="${factorySearch}">
       </div>
+      <select id="filter-location" class="filter-select" onchange="onFactoryFilterChange()">
+        <option value="">All locations</option>
+        ${locations.map(l=>`<option value="${l}" ${factoryFilters.location===l?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <select id="filter-type" class="filter-select" onchange="onFactoryFilterChange()">
+        <option value="">All types</option>
+        ${types.map(t=>`<option value="${t}" ${factoryFilters.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <select id="filter-score" class="filter-select" onchange="onFactoryFilterChange()">
+        <option value="">Any opportunity</option>
+        <option value="4" ${factoryFilters.minScore==='4'?'selected':''}>4+ stars</option>
+        <option value="3" ${factoryFilters.minScore==='3'?'selected':''}>3+ stars</option>
+        <option value="2" ${factoryFilters.minScore==='2'?'selected':''}>2+ stars</option>
+      </select>
+      <label class="checkbox-inline">
+        <input type="checkbox" id="filter-archived" ${factoryFilters.showArchived?'checked':''} onchange="onFactoryFilterChange()"> Show archived
+      </label>
       <div class="result-count" id="factory-result-count"></div>
     </div>
     <div class="panel">
@@ -57,13 +77,30 @@ function renderFactoriesPage(){
   renderFactoryTableBody();
 }
 
+let factoryFilters = { location:'', type:'', minScore:'', showArchived:false };
+
+function onFactoryFilterChange(){
+  factoryFilters.location = document.getElementById('filter-location').value;
+  factoryFilters.type = document.getElementById('filter-type').value;
+  factoryFilters.minScore = document.getElementById('filter-score').value;
+  factoryFilters.showArchived = document.getElementById('filter-archived').checked;
+  renderFactoryTableBody();
+}
+
 function renderFactoryTableBody(){
   const term = factorySearch.trim().toLowerCase();
-  let rows = sampleFactories.filter(f =>
-    f.factory_name.toLowerCase().includes(term) ||
-    (f.group_name||'').toLowerCase().includes(term) ||
-    (f.location||'').toLowerCase().includes(term)
-  );
+  let rows = sampleFactories.filter(f => {
+    if(f.is_deleted && !factoryFilters.showArchived) return false;
+    const matchesTerm = f.factory_name.toLowerCase().includes(term) ||
+      (f.group_name||'').toLowerCase().includes(term) ||
+      (f.location||'').toLowerCase().includes(term) ||
+      (f.current_machine_brands||'').toLowerCase().includes(term);
+    if(!matchesTerm) return false;
+    if(factoryFilters.location && f.location !== factoryFilters.location) return false;
+    if(factoryFilters.type && f.factory_type !== factoryFilters.type) return false;
+    if(factoryFilters.minScore && (f.opportunity_score||0) < Number(factoryFilters.minScore)) return false;
+    return true;
+  });
 
   rows.sort((a,b)=>{
     let av = a[factorySort.key] ?? '';
@@ -77,15 +114,15 @@ function renderFactoryTableBody(){
   document.getElementById('factory-result-count').textContent = `${rows.length} factor${rows.length===1?'y':'ies'}`;
 
   document.getElementById('factory-table-body').innerHTML = rows.map(f => `
-    <tr onclick="openFactory('${f.id}')">
-      <td class="factory-name">${f.factory_name}</td>
-      <td class="rec-id">${f.group_name || '—'}</td>
-      <td>${f.location || '—'}</td>
-      <td>${f.factory_type || '—'}</td>
-      <td>${opportunityStars(f.opportunity_score)}</td>
-      <td class="rec-id">${formatDate(f.last_visit_date)}</td>
+    <tr onclick="openFactory('${f.id}')" style="${f.is_deleted ? 'opacity:.55;' : ''}">
+      <td class="factory-name" data-label="Factory">${f.factory_name}${f.is_deleted ? ' <span class="stage-pill" style="margin-left:6px;">Archived</span>' : ''}</td>
+      <td class="rec-id" data-label="Group">${f.group_name || '—'}</td>
+      <td data-label="Location">${f.location || '—'}</td>
+      <td data-label="Type">${f.factory_type || '—'}</td>
+      <td data-label="Opportunity">${opportunityStars(f.opportunity_score)}</td>
+      <td class="rec-id" data-label="Last visit">${formatDate(f.last_visit_date)}</td>
     </tr>
-  `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px;">No factories match "${factorySearch}"</td></tr>`;
+  `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px;">No factories match your filters.</td></tr>`;
 }
 
 function opportunityStars(score){
@@ -107,7 +144,7 @@ function openFactory(id){
   currentFactoryId = id;
   currentFactoryTab = 'overview';
   document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-  document.querySelector('.nav-item[data-page="factories"]').classList.add('active');
+  document.querySelectorAll('.nav-item[data-page="factories"]').forEach(i=>i.classList.add('active'));
   renderFactory360();
 }
 
@@ -120,6 +157,7 @@ function renderFactory360(){
   const c = document.getElementById('content');
   c.innerHTML = `
     <div class="breadcrumb" onclick="renderFactoriesPage()"><i class="ti ti-arrow-left"></i> All factories</div>
+    ${f.is_deleted ? `<div class="archived-banner"><i class="ti ti-archive"></i> This factory is archived and hidden from the main list. <button class="btn-tertiary" style="text-decoration:underline;padding:0;margin-left:6px;" onclick="restoreFactory('${f.id}')">Restore it</button></div>` : ''}
     <div class="f360-head">
       <div>
         <h1>${f.factory_name}</h1>
@@ -128,6 +166,7 @@ function renderFactory360(){
       <div class="f360-actions">
         <button class="btn-secondary" onclick="openVisitModal('${f.id}')"><i class="ti ti-clipboard-plus"></i> Log visit</button>
         <button class="btn-secondary" onclick="openContactModal('${f.id}')"><i class="ti ti-user-plus"></i> Add contact</button>
+        ${!f.is_deleted ? `<button class="btn-tertiary" style="color:var(--danger);" onclick="archiveFactory('${f.id}')" title="Archive"><i class="ti ti-archive"></i></button>` : ''}
       </div>
     </div>
 
@@ -320,4 +359,21 @@ function isSimilarName(a, b){
   if(na === nb) return true;
   if(na.length > 4 && nb.length > 4 && (na.includes(nb) || nb.includes(na))) return true;
   return false;
+}
+
+function archiveFactory(id){
+  const f = getFactory(id);
+  if(!f) return;
+  if(!confirm(`Archive "${f.factory_name}"? It'll be hidden from the main list but nothing is deleted — you can restore it anytime.`)) return;
+  f.is_deleted = true;
+  showToast('Factory archived.');
+  renderFactoriesPage();
+}
+
+function restoreFactory(id){
+  const f = getFactory(id);
+  if(!f) return;
+  f.is_deleted = false;
+  showToast('Factory restored.');
+  renderFactory360();
 }

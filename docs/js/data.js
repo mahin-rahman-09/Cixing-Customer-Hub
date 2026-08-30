@@ -44,6 +44,8 @@ function getContactsForFactory(id){ return sampleContacts.filter(c=>c.factory_id
 function getVisitsForFactory(id){ return sampleVisits.filter(v=>v.factory_id===id).sort((a,b)=> new Date(b.visit_date)-new Date(a.visit_date)); }
 function getContact(id){ return sampleContacts.find(c=>c.id===id); }
 
+let sampleEmployees = ['Rafiqul Haque', 'Nasrin Akter', 'Mahmud Kabir'];
+
 let sampleFollowUps = [
   { id:'fu1', factory_id:'f1', task:'Send revised quotation', responsible_employee:'Rafiqul Haque', due_date:'2026-08-25', priority:'High', status:'Pending' },
   { id:'fu2', factory_id:'f2', task:'Prepare quotation for 4 units', responsible_employee:'Nasrin Akter', due_date:'2026-08-27', priority:'Medium', status:'Pending' },

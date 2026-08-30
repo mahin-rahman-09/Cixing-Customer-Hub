@@ -74,7 +74,7 @@ function renderFollowUpList(){
 
   panel.innerHTML = `
     <table class="ledger">
-      <thead><tr><th>Factory</th><th>Task</th><th>Due</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Factory</th><th>Task</th><th>Due</th><th>Owner</th><th>Priority</th><th>Status</th><th></th></tr></thead>
       <tbody>
         ${rows.map(fu => followUpRow(fu)).join('')}
       </tbody>
@@ -97,12 +97,14 @@ function followUpRow(fu){
 
   return `
     <tr style="${isDone ? 'opacity:.55;' : ''}">
-      <td class="factory-name">${f ? f.factory_name : '—'}</td>
-      <td style="${isDone ? 'text-decoration:line-through;' : ''}">${fu.task}</td>
-      <td class="rec-id" style="${dueStyle}">${dueLabel}</td>
-      <td><span class="priority-dot ${priorityClass}"></span>${fu.priority}</td>
-      <td><span class="stage-pill ${isDone ? 'success' : ''}">${fu.status}</span></td>
-      <td style="text-align:right;white-space:nowrap;">
+      <td class="factory-name" data-label="Factory">${f ? f.factory_name : '—'}</td>
+      <td data-label="Task" class="followup-task" style="${isDone ? 'text-decoration:line-through;' : ''}" onclick="openFollowUpModal('${fu.id}')">${fu.task}</td>
+      <td class="rec-id" data-label="Due" style="${dueStyle}">${dueLabel}</td>
+      <td data-label="Owner" class="rec-id">${fu.responsible_employee || '—'}</td>
+      <td data-label="Priority"><span class="priority-dot ${priorityClass}"></span>${fu.priority}</td>
+      <td data-label="Status"><span class="stage-pill ${isDone ? 'success' : ''}">${fu.status}</span></td>
+      <td data-label="" style="text-align:right;white-space:nowrap;">
+        <button class="row-action" title="Edit" onclick="openFollowUpModal('${fu.id}')"><i class="ti ti-pencil"></i></button>
         ${!isDone ? `
           <button class="row-action" title="Mark complete" onclick="completeFollowUp('${fu.id}')"><i class="ti ti-check"></i></button>
           <button class="row-action" title="Log a visit" onclick="openVisitModal('${fu.factory_id}')"><i class="ti ti-clipboard-plus"></i></button>
@@ -131,4 +133,94 @@ function updateFollowUpBadge(){
   const count = cats.today.length + cats.overdue.length;
   badge.textContent = count;
   badge.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+// ---- Edit / reassign modal ----
+function openFollowUpModal(id){
+  const fu = sampleFollowUps.find(f=>f.id===id);
+  if(!fu) return;
+  const f = getFactory(fu.factory_id);
+
+  const root = document.getElementById('followup-modal-root') || (() => {
+    const d = document.createElement('div');
+    d.id = 'followup-modal-root';
+    document.body.appendChild(d);
+    return d;
+  })();
+
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeFollowUpModal()">
+      <div class="modal-card">
+        <h3>Edit follow-up</h3>
+        <p class="modal-sub">${f ? f.factory_name : ''}</p>
+
+        <div class="field">
+          <label>Task *</label>
+          <input id="fu-task" value="${(fu.task||'').replace(/"/g,'&quot;')}">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Due date</label>
+            <input type="date" id="fu-due-date" value="${fu.due_date}">
+          </div>
+          <div class="field">
+            <label>Priority</label>
+            <select id="fu-priority">
+              <option value="Low" ${fu.priority==='Low'?'selected':''}>Low</option>
+              <option value="Medium" ${fu.priority==='Medium'?'selected':''}>Medium</option>
+              <option value="High" ${fu.priority==='High'?'selected':''}>High</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Assigned to</label>
+            <select id="fu-employee">
+              ${sampleEmployees.map(e=>`<option value="${e}" ${fu.responsible_employee===e?'selected':''}>${e}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="fu-status">
+              <option value="Pending" ${fu.status==='Pending'?'selected':''}>Pending</option>
+              <option value="In Progress" ${fu.status==='In Progress'?'selected':''}>In Progress</option>
+              <option value="Completed" ${fu.status==='Completed'?'selected':''}>Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-tertiary" onclick="closeFollowUpModal()">Cancel</button>
+          <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="submitFollowUpEdit('${id}')">Save changes</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('fu-task').focus();
+}
+
+function closeFollowUpModal(){
+  const root = document.getElementById('followup-modal-root');
+  if(root) root.innerHTML = '';
+}
+
+function submitFollowUpEdit(id){
+  const fu = sampleFollowUps.find(f=>f.id===id);
+  if(!fu) return;
+  const task = document.getElementById('fu-task').value.trim();
+  if(!task){ alert('Task is required.'); return; }
+
+  fu.task = task;
+  fu.due_date = document.getElementById('fu-due-date').value;
+  fu.priority = document.getElementById('fu-priority').value;
+  fu.responsible_employee = document.getElementById('fu-employee').value;
+  const newStatus = document.getElementById('fu-status').value;
+  if(newStatus === 'Completed' && fu.status !== 'Completed'){ fu.completed_at = new Date().toISOString(); }
+  fu.status = newStatus;
+
+  closeFollowUpModal();
+  renderFollowUpTabs();
+  renderFollowUpList();
+  updateFollowUpBadge();
+  showToast('Follow-up updated.');
 }
