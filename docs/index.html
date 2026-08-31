@@ -22,13 +22,14 @@
     <p class="login-sub">Customer Hub — Cixing Bangladesh Ltd. internal system</p>
     <div class="field">
       <label>Email</label>
-      <input type="email" value="rafiq@cixingbd.com" id="login-email">
+      <input type="email" id="login-email" placeholder="you@cixingbd.com" autocomplete="username">
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" value="••••••••" id="login-pass">
+      <input type="password" id="login-pass" placeholder="Your password" autocomplete="current-password">
     </div>
-    <button class="btn-primary" onclick="doLogin()">Log in</button>
+    <p id="login-error" class="login-error"></p>
+    <button class="btn-primary" id="login-btn" onclick="handleLogin()">Log in</button>
     <p class="login-foot">Forgot password? Ask your admin to reset it.</p>
   </div>
 </div>
@@ -61,11 +62,12 @@
 
     <div class="sidebar-footer">
       <div class="user-chip">
-        <div class="user-avatar" id="user-initials">RH</div>
+        <div class="user-avatar" id="user-initials">—</div>
         <div class="who">
-          <div class="name" id="user-name">Rafiqul Haque</div>
-          <div class="role" id="user-role">Sales exec</div>
+          <div class="name" id="user-name">Loading...</div>
+          <div class="role" id="user-role"></div>
         </div>
+        <i class="ti ti-logout logout-icon" title="Log out" onclick="handleLogout()"></i>
       </div>
     </div>
   </div>
@@ -76,13 +78,6 @@
         <i class="ti ti-search"></i>
         <input id="global-search-input" placeholder="Search factories, contacts..." autocomplete="off" oninput="onGlobalSearchInput(this.value)">
         <div id="global-search-dropdown" class="autocomplete-dropdown"></div>
-      </div>
-      <div class="role-toggle">
-        View as
-        <select id="role-select" onchange="setRole(this.value)">
-          <option value="sales">Sales exec</option>
-          <option value="manager">Management</option>
-        </select>
       </div>
     </div>
 
@@ -104,11 +99,14 @@
   <div id="more-sheet-root"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
 <script src="js/data.js"></script>
 <script src="js/factories.js"></script>
 <script src="js/contacts.js"></script>
 <script src="js/visits.js"></script>
 <script src="js/followups.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

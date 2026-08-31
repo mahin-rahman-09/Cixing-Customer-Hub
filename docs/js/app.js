@@ -1,10 +1,3 @@
-function doLogin(){
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('app-view').classList.add('active');
-  renderPage('home');
-  updateFollowUpBadge();
-}
-
 document.querySelectorAll('.nav-item').forEach(item=>{
   item.addEventListener('click', ()=>{
     const page = item.dataset.page;
@@ -15,21 +8,10 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   });
 });
 
+// currentRole drives which dashboard renders ('sales' or 'manager').
+// Set for real by auth.js once the logged-in user's profile loads —
+// this default only matters for the brief moment before that happens.
 let currentRole = 'sales';
-function setRole(r){
-  currentRole = r;
-  if(r==='manager'){
-    document.getElementById('user-initials').textContent='NA';
-    document.getElementById('user-name').textContent='Nasrin Akter';
-    document.getElementById('user-role').textContent='Sales manager';
-  } else {
-    document.getElementById('user-initials').textContent='RH';
-    document.getElementById('user-name').textContent='Rafiqul Haque';
-    document.getElementById('user-role').textContent='Sales exec';
-  }
-  const active = document.querySelector('.nav-item.active');
-  renderPage(active ? active.dataset.page : 'home');
-}
 
 const today = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
@@ -46,10 +28,15 @@ function renderPage(page){
   }
 }
 
+function firstName(){
+  const name = currentUserProfile ? currentUserProfile.full_name : 'there';
+  return name.split(' ')[0];
+}
+
 function salesDashboard(){
   return `
     <div class="page-head">
-      <h1>Good morning, Rafiqul</h1>
+      <h1>Good morning, ${firstName()}</h1>
       <div class="date">${today}</div>
     </div>
     <div class="tiles">
@@ -209,17 +196,11 @@ function openMoreSheet(){
         <div class="more-sheet-item" data-page="machines"><i class="ti ti-tool"></i> Machines <span class="tab-tag">V3</span></div>
         <div class="more-sheet-item" data-page="service"><i class="ti ti-settings"></i> Service <span class="tab-tag">V4</span></div>
         <div class="more-sheet-divider"></div>
-        <div class="more-sheet-role">
-          View as
-          <select onchange="setRole(this.value); closeMoreSheet();">
-            <option value="sales" ${currentRole==='sales'?'selected':''}>Sales exec</option>
-            <option value="manager" ${currentRole==='manager'?'selected':''}>Management</option>
-          </select>
-        </div>
+        <div class="more-sheet-item" onclick="handleLogout()"><i class="ti ti-logout"></i> Log out</div>
       </div>
     </div>
   `;
-  root.querySelectorAll('.more-sheet-item').forEach(item=>{
+  root.querySelectorAll('.more-sheet-item[data-page]').forEach(item=>{
     item.addEventListener('click', ()=>{
       const page = item.dataset.page;
       document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
