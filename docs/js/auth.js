@@ -23,17 +23,22 @@ async function handleLogin(){
   btn.disabled = true;
   btn.textContent = 'Logging in...';
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  try{
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  btn.disabled = false;
-  btn.textContent = 'Log in';
+    if(error){
+      errorEl.textContent = friendlyAuthError(error.message);
+      return;
+    }
 
-  if(error){
-    errorEl.textContent = friendlyAuthError(error.message);
-    return;
+    await enterAppWithUser(data.user);
+  } catch(err){
+    console.error('Login failed:', err);
+    errorEl.textContent = 'Something went wrong connecting to the server. Check the browser console for details.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log in';
   }
-
-  await enterAppWithUser(data.user);
 }
 
 function friendlyAuthError(message){
@@ -99,9 +104,13 @@ async function handleLogout(){
 
 // ---- On page load: if there's already a valid session, skip the login screen ----
 (async function checkExistingSession(){
-  const { data: { session } } = await supabase.auth.getSession();
-  if(session && session.user){
-    await enterAppWithUser(session.user);
+  try{
+    const { data: { session } } = await supabase.auth.getSession();
+    if(session && session.user){
+      await enterAppWithUser(session.user);
+    }
+  } catch(err){
+    console.error('Session check failed:', err);
   }
 })();
 
