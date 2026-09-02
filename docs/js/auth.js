@@ -24,7 +24,7 @@ async function handleLogin(){
   btn.textContent = 'Logging in...';
 
   try{
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if(error){
       errorEl.textContent = friendlyAuthError(error.message);
@@ -49,7 +49,7 @@ function friendlyAuthError(message){
 
 // ---- Load profile, then show the app ----
 async function enterAppWithUser(user){
-  const { data: profile, error } = await supabase
+  const { data: profile, error } = await supabaseClient
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
@@ -58,13 +58,13 @@ async function enterAppWithUser(user){
   if(error || !profile){
     document.getElementById('login-error').textContent =
       'Your login worked, but no profile was found for this account. Ask your admin to set one up.';
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     return;
   }
 
   if(profile.is_active === false){
     document.getElementById('login-error').textContent = 'This account has been deactivated.';
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     return;
   }
 
@@ -93,7 +93,7 @@ function roleLabel(role){
 
 // ---- Logout ----
 async function handleLogout(){
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   currentUserProfile = null;
   document.getElementById('app-view').classList.remove('active');
   document.getElementById('login-view').classList.remove('hidden');
@@ -105,7 +105,7 @@ async function handleLogout(){
 // ---- On page load: if there's already a valid session, skip the login screen ----
 (async function checkExistingSession(){
   try{
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if(session && session.user){
       await enterAppWithUser(session.user);
     }
