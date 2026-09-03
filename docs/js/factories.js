@@ -279,9 +279,21 @@ function editOverviewField(el, key, isTextarea){
   input.focus();
   if(!isTextarea) input.select();
 
-  const save = () => {
+  const save = async () => {
     const newVal = input.value.trim();
-    f[key] = newVal;
+    input.disabled = true;
+
+    const { error } = await supabaseClient
+      .from('factories')
+      .update({ [key]: newVal, updated_by: currentUserProfile.id, updated_at: new Date().toISOString() })
+      .eq('id', f.id);
+
+    if(error){
+      console.error('Failed to save field:', error);
+      alert('Could not save that change. Please try again.');
+    } else {
+      f[key] = newVal;
+    }
     renderFactoryTabContent(f, getContactsForFactory(f.id), getVisitsForFactory(f.id));
   };
   input.addEventListener('blur', save);
@@ -299,10 +311,24 @@ function editableStars(f){
   return out + '</span>';
 }
 
-function setOpportunityScore(factoryId, score){
+async function setOpportunityScore(factoryId, score){
   const f = getFactory(factoryId);
   if(!f) return;
-  f.opportunity_score = (f.opportunity_score === score) ? score - 1 : score; // click same star again to reduce by one
+  const reduced = score - 1;
+  const newScore = (f.opportunity_score === score) ? (reduced || null) : score; // clicking the same star again clears it to "no rating" instead of an invalid 0
+
+  const { error } = await supabaseClient
+    .from('factories')
+    .update({ opportunity_score: newScore, updated_by: currentUserProfile.id, updated_at: new Date().toISOString() })
+    .eq('id', f.id);
+
+  if(error){
+    console.error('Failed to save opportunity score:', error);
+    alert('Could not save that change. Please try again.');
+    return;
+  }
+
+  f.opportunity_score = newScore;
   renderFactoryTabContent(f, getContactsForFactory(f.id), getVisitsForFactory(f.id));
 }
 
@@ -347,9 +373,29 @@ function submitAddFactory(){
     if(!proceed) return;
   }
 
-  const id = 'f' + (sampleFactories.length + 1) + '_' + Date.now();
-  sampleFactories.push({ id, factory_name:name, group_name:'', location, factory_type:'', total_employees:null, opportunity_score:0, current_machine_brands:'', existing_cixing_machines:'', notes:'', last_visit_date:'' });
+  createFactory(name, location);
+}
+
+async function createFactory(name, location){
+  const saveBtn = document.querySelector('#add-factory-modal-root .btn-primary');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Adding...'; }
+
+  const { data, error } = await supabaseClient
+    .from('factories')
+    .insert({ factory_name: name, location, created_by: currentUserProfile.id })
+    .select()
+    .single();
+
+  if(error){
+    console.error('Failed to create factory:', error);
+    alert('Could not add that factory. Please try again.');
+    if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Add factory'; }
+    return;
+  }
+
+  sampleFactories.push(data);
   closeAddFactoryModal();
+  showToast('Factory added.');
   renderFactoryTableBody();
 }
 
@@ -361,18 +407,42 @@ function isSimilarName(a, b){
   return false;
 }
 
-function archiveFactory(id){
+async function archiveFactory(id){
   const f = getFactory(id);
   if(!f) return;
   if(!confirm(`Archive "${f.factory_name}"? It'll be hidden from the main list but nothing is deleted — you can restore it anytime.`)) return;
+
+  const { error } = await supabaseClient
+    .from('factories')
+    .update({ is_deleted: true, updated_by: currentUserProfile.id, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if(error){
+    console.error('Failed to archive factory:', error);
+    alert('Could not archive this factory. Please try again.');
+    return;
+  }
+
   f.is_deleted = true;
   showToast('Factory archived.');
   renderFactoriesPage();
 }
 
-function restoreFactory(id){
+async function restoreFactory(id){
   const f = getFactory(id);
   if(!f) return;
+
+  const { error } = await supabaseClient
+    .from('factories')
+    .update({ is_deleted: false, updated_by: currentUserProfile.id, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if(error){
+    console.error('Failed to restore factory:', error);
+    alert('Could not restore this factory. Please try again.');
+    return;
+  }
+
   f.is_deleted = false;
   showToast('Factory restored.');
   renderFactory360();

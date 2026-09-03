@@ -124,10 +124,24 @@ function selectVisitFactory(id){
   populateContactSelect(id);
 }
 
-function quickAddFactory(name){
-  const id = 'f' + (sampleFactories.length + 1) + '_' + Date.now();
-  sampleFactories.push({ id, factory_name:name, group_name:'', location:'', factory_type:'', opportunity_score:0, current_machine_brands:'', existing_cixing_machines:'', notes:'', last_visit_date:'' });
-  selectVisitFactory(id);
+async function quickAddFactory(name){
+  const dropdown = document.getElementById('visit-factory-dropdown');
+  dropdown.innerHTML = `<div class="autocomplete-item" style="color:var(--ink-soft);">Adding "${name}"...</div>`;
+
+  const { data, error } = await supabaseClient
+    .from('factories')
+    .insert({ factory_name: name, created_by: currentUserProfile.id })
+    .select()
+    .single();
+
+  if(error){
+    console.error('Failed to create factory:', error);
+    dropdown.innerHTML = `<div class="autocomplete-item" style="color:var(--danger);">Could not add that factory. Try again.</div>`;
+    return;
+  }
+
+  sampleFactories.push(data);
+  selectVisitFactory(data.id);
 }
 
 function populateContactSelect(factoryId){

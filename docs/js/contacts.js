@@ -74,7 +74,7 @@ function closeContactModal(){
   contactModalEditingId = null;
 }
 
-function submitContact(){
+async function submitContact(){
   const name = document.getElementById('ct-name').value.trim();
   if(!name){ alert('Name is required.'); return; }
 
@@ -88,17 +88,39 @@ function submitContact(){
     is_decision_maker: document.getElementById('ct-decision-maker').checked,
   };
 
+  const saveBtn = document.querySelector('#contact-modal-root .btn-primary');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
   if(contactModalEditingId){
+    const { error } = await supabaseClient
+      .from('contacts')
+      .update({ ...values, updated_at: new Date().toISOString() })
+      .eq('id', contactModalEditingId);
+
+    if(error){
+      console.error('Failed to update contact:', error);
+      alert('Could not save that contact. Please try again.');
+      if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; }
+      return;
+    }
+
     const ct = getContact(contactModalEditingId);
     Object.assign(ct, values);
   } else {
-    sampleContacts.push({
-      id: 'c' + Date.now(),
-      factory_id: contactModalFactoryId,
-      is_active: true,
-      notes: '',
-      ...values
-    });
+    const { data, error } = await supabaseClient
+      .from('contacts')
+      .insert({ factory_id: contactModalFactoryId, is_active: true, notes: '', created_by: currentUserProfile.id, ...values })
+      .select()
+      .single();
+
+    if(error){
+      console.error('Failed to create contact:', error);
+      alert('Could not add that contact. Please try again.');
+      if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Add contact'; }
+      return;
+    }
+
+    sampleContacts.push(data);
   }
 
   closeContactModal();
@@ -106,9 +128,22 @@ function submitContact(){
   refreshFactory360IfOpen();
 }
 
-function deactivateContact(){
+async function deactivateContact(){
   const ct = getContact(contactModalEditingId);
-  if(ct) ct.is_active = false;
+  if(!ct) return;
+
+  const { error } = await supabaseClient
+    .from('contacts')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', contactModalEditingId);
+
+  if(error){
+    console.error('Failed to remove contact:', error);
+    alert('Could not remove this contact. Please try again.');
+    return;
+  }
+
+  ct.is_active = false;
   closeContactModal();
   showToast('Contact removed.');
   refreshFactory360IfOpen();

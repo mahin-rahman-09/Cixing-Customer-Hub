@@ -81,6 +81,11 @@ async function enterAppWithUser(user){
     sampleEmployees.unshift(profile.full_name);
   }
 
+  // load real factories + contacts before showing any screen that depends on them
+  const btn = document.getElementById('login-btn');
+  if(btn) btn.textContent = 'Loading your data...';
+  await loadFactoriesAndContacts();
+
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.add('active');
   renderPage('home');
