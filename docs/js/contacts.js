@@ -56,7 +56,12 @@ function openContactModal(factoryId, contactId){
         </div>
 
         <div class="modal-actions" style="justify-content:space-between;">
-          ${editing ? `<button class="btn-tertiary" style="color:var(--danger);" onclick="deactivateContact()"><i class="ti ti-trash"></i> Remove</button>` : `<span></span>`}
+          ${editing && ct && ct.is_active===false ? `
+            <div style="display:flex;gap:14px;align-items:center;">
+              <button class="btn-tertiary" style="text-decoration:underline;padding:0;" onclick="restoreContact()">Restore</button>
+              <button class="btn-tertiary" style="color:var(--danger);padding:0;" onclick="submitDeleteContact()"><i class="ti ti-trash"></i> Delete permanently</button>
+            </div>
+          ` : editing ? `<button class="btn-tertiary" style="color:var(--danger);" onclick="deactivateContact()"><i class="ti ti-trash"></i> Remove</button>` : `<span></span>`}
           <div style="display:flex;gap:8px;">
             <button class="btn-tertiary" onclick="closeContactModal()">Cancel</button>
             <button class="btn-primary" style="width:auto;padding:9px 18px;" onclick="submitContact()">${editing ? 'Save changes' : 'Add contact'}</button>
@@ -146,6 +151,46 @@ async function deactivateContact(){
   ct.is_active = false;
   closeContactModal();
   showToast('Contact removed.');
+  refreshFactory360IfOpen();
+}
+
+async function restoreContact(){
+  const ct = getContact(contactModalEditingId);
+  if(!ct) return;
+
+  const { error } = await supabaseClient
+    .from('contacts')
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq('id', contactModalEditingId);
+
+  if(error){
+    console.error('Failed to restore contact:', error);
+    alert('Could not restore this contact. Please try again.');
+    return;
+  }
+
+  ct.is_active = true;
+  closeContactModal();
+  showToast('Contact restored.');
+  refreshFactory360IfOpen();
+}
+
+async function submitDeleteContact(){
+  const ct = getContact(contactModalEditingId);
+  if(!ct) return;
+  if(!confirm(`Permanently delete ${ct.name}? This can't be undone.`)) return;
+
+  const { error } = await supabaseClient.from('contacts').delete().eq('id', contactModalEditingId);
+
+  if(error){
+    console.error('Failed to delete contact:', error);
+    alert('Could not delete this contact. Please try again.');
+    return;
+  }
+
+  sampleContacts = sampleContacts.filter(c => c.id !== contactModalEditingId);
+  closeContactModal();
+  showToast('Contact deleted permanently.');
   refreshFactory360IfOpen();
 }
 

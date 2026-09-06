@@ -7,6 +7,23 @@
 
 let currentUserProfile = null; // { id, full_name, role, phone, is_active }
 
+// ---- Helpers to move between the three screens cleanly (no flash, no stuck states) ----
+function showBootScreen(){
+  document.getElementById('boot-screen').style.display = 'flex';
+  document.getElementById('login-view').classList.remove('active');
+  document.getElementById('app-view').classList.remove('active');
+}
+function showLoginScreen(){
+  document.getElementById('boot-screen').style.display = 'none';
+  document.getElementById('app-view').classList.remove('active');
+  document.getElementById('login-view').classList.add('active');
+}
+function showAppScreen(){
+  document.getElementById('boot-screen').style.display = 'none';
+  document.getElementById('login-view').classList.remove('active');
+  document.getElementById('app-view').classList.add('active');
+}
+
 // ---- Login ----
 async function handleLogin(){
   const email = document.getElementById('login-email').value.trim();
@@ -56,6 +73,7 @@ async function enterAppWithUser(user){
     .single();
 
   if(error || !profile){
+    showLoginScreen();
     document.getElementById('login-error').textContent =
       'Your login worked, but no profile was found for this account. Ask your admin to set one up.';
     await supabaseClient.auth.signOut();
@@ -63,6 +81,7 @@ async function enterAppWithUser(user){
   }
 
   if(profile.is_active === false){
+    showLoginScreen();
     document.getElementById('login-error').textContent = 'This account has been deactivated.';
     await supabaseClient.auth.signOut();
     return;
@@ -86,8 +105,7 @@ async function enterAppWithUser(user){
   if(btn) btn.textContent = 'Loading your data...';
   await loadFactoriesAndContacts();
 
-  document.getElementById('login-view').classList.add('hidden');
-  document.getElementById('app-view').classList.add('active');
+  showAppScreen();
   renderPage('home');
   updateFollowUpBadge();
 }
@@ -100,22 +118,24 @@ function roleLabel(role){
 async function handleLogout(){
   await supabaseClient.auth.signOut();
   currentUserProfile = null;
-  document.getElementById('app-view').classList.remove('active');
-  document.getElementById('login-view').classList.remove('hidden');
+  showLoginScreen();
   document.getElementById('login-email').value = '';
   document.getElementById('login-pass').value = '';
   document.getElementById('login-error').textContent = '';
 }
 
-// ---- On page load: if there's already a valid session, skip the login screen ----
+// ---- On page load: figure out which of the three screens to show, with no flash ----
 (async function checkExistingSession(){
   try{
     const { data: { session } } = await supabaseClient.auth.getSession();
     if(session && session.user){
       await enterAppWithUser(session.user);
+    } else {
+      showLoginScreen();
     }
   } catch(err){
     console.error('Session check failed:', err);
+    showLoginScreen();
   }
 })();
 

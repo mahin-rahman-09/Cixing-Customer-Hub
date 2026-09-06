@@ -157,7 +157,7 @@ function renderFactory360(){
   const c = document.getElementById('content');
   c.innerHTML = `
     <div class="breadcrumb" onclick="renderFactoriesPage()"><i class="ti ti-arrow-left"></i> All factories</div>
-    ${f.is_deleted ? `<div class="archived-banner"><i class="ti ti-archive"></i> This factory is archived and hidden from the main list. <button class="btn-tertiary" style="text-decoration:underline;padding:0;margin-left:6px;" onclick="restoreFactory('${f.id}')">Restore it</button></div>` : ''}
+    ${f.is_deleted ? `<div class="archived-banner"><i class="ti ti-archive"></i> This factory is archived and hidden from the main list. <button class="btn-tertiary" style="text-decoration:underline;padding:0;margin-left:6px;" onclick="restoreFactory('${f.id}')">Restore it</button> <span style="opacity:.4;margin:0 4px;">|</span> <button class="btn-tertiary" style="text-decoration:underline;padding:0;color:var(--danger);" onclick="openDeleteFactoryModal('${f.id}')">Delete permanently</button></div>` : ''}
     <div class="f360-head">
       <div>
         <h1>${f.factory_name}</h1>
@@ -221,24 +221,16 @@ function renderFactoryTabContent(f, contacts, visits){
       </div>
     `;
   } else if(currentFactoryTab==='contacts'){
+    const activeContacts = contacts.filter(ct=>ct.is_active!==false);
+    const removedContacts = contacts.filter(ct=>ct.is_active===false);
     el.innerHTML = `
       <div class="panel">
-        ${contacts.filter(ct=>ct.is_active!==false).length ? contacts.filter(ct=>ct.is_active!==false).map(ct => `
-          <div class="contact-card ${ct.is_decision_maker?'dm':''}">
-            <div class="contact-avatar" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;">${initials(ct.name)}</div>
-            <div class="contact-info" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;">
-              <div class="contact-name">${ct.name} ${ct.is_decision_maker?'<span class="dm-badge">Decision maker</span>':''}</div>
-              <div class="contact-role">${ct.designation || ''}${ct.department? ' · '+ct.department : ''}</div>
-            </div>
-            <div class="contact-links">
-              ${ct.phone ? `<a href="tel:${ct.phone}" title="Call" onclick="event.stopPropagation()"><i class="ti ti-phone"></i></a>` : ''}
-              ${ct.whatsapp ? `<a href="https://wa.me/${ct.whatsapp.replace('+','')}" target="_blank" title="WhatsApp" onclick="event.stopPropagation()"><i class="ti ti-brand-whatsapp"></i></a>` : ''}
-              ${ct.email ? `<a href="mailto:${ct.email}" title="Email" onclick="event.stopPropagation()"><i class="ti ti-mail"></i></a>` : ''}
-              <i class="ti ti-pencil" title="Edit" onclick="openContactModal('${f.id}','${ct.id}')" style="cursor:pointer;color:var(--ink-soft);"></i>
-            </div>
-          </div>
-        `).join('') : `<div class="empty" style="border:none;"><p>No contacts saved yet for this factory.</p></div>`}
+        ${activeContacts.length ? activeContacts.map(ct => contactCard(f.id, ct)).join('') : `<div class="empty" style="border:none;"><p>No contacts saved yet for this factory.</p></div>`}
       </div>
+      ${removedContacts.length ? `
+        <div class="show-removed-toggle" onclick="toggleShowRemovedContacts()"><i class="ti ti-chevron-${showRemovedContacts?'up':'down'}"></i> ${showRemovedContacts?'Hide':'Show'} removed (${removedContacts.length})</div>
+        ${showRemovedContacts ? `<div class="panel" style="margin-top:8px;opacity:.6;">${removedContacts.map(ct => contactCard(f.id, ct)).join('')}</div>` : ''}
+      ` : ''}
     `;
   } else if(currentFactoryTab==='visits'){
     el.innerHTML = `
@@ -260,6 +252,30 @@ function renderFactoryTabContent(f, contacts, visits){
     const tag = currentFactoryTab==='quotations' ? 'Version 2' : currentFactoryTab==='machines' ? 'Version 3' : 'Version 4';
     el.innerHTML = `<div class="empty"><i class="ti ti-hammer"></i><h3>Coming later</h3><p>This tab fills in once we build that module.</p><span class="tag">${tag}</span></div>`;
   }
+}
+
+let showRemovedContacts = false;
+function toggleShowRemovedContacts(){
+  showRemovedContacts = !showRemovedContacts;
+  renderFactoryTabContent(getFactory(currentFactoryId), getContactsForFactory(currentFactoryId), getVisitsForFactory(currentFactoryId));
+}
+
+function contactCard(factoryId, ct){
+  return `
+    <div class="contact-card ${ct.is_decision_maker?'dm':''}">
+      <div class="contact-avatar" onclick="openContactModal('${factoryId}','${ct.id}')" style="cursor:pointer;">${initials(ct.name)}</div>
+      <div class="contact-info" onclick="openContactModal('${factoryId}','${ct.id}')" style="cursor:pointer;">
+        <div class="contact-name">${ct.name} ${ct.is_decision_maker?'<span class="dm-badge">Decision maker</span>':''} ${ct.is_active===false?'<span class="stage-pill">Removed</span>':''}</div>
+        <div class="contact-role">${ct.designation || ''}${ct.department? ' · '+ct.department : ''}</div>
+      </div>
+      <div class="contact-links">
+        ${ct.phone ? `<a href="tel:${ct.phone}" title="Call" onclick="event.stopPropagation()"><i class="ti ti-phone"></i></a>` : ''}
+        ${ct.whatsapp ? `<a href="https://wa.me/${ct.whatsapp.replace('+','')}" target="_blank" title="WhatsApp" onclick="event.stopPropagation()"><i class="ti ti-brand-whatsapp"></i></a>` : ''}
+        ${ct.email ? `<a href="mailto:${ct.email}" title="Email" onclick="event.stopPropagation()"><i class="ti ti-mail"></i></a>` : ''}
+        <i class="ti ti-pencil" title="Edit" onclick="openContactModal('${factoryId}','${ct.id}')" style="cursor:pointer;color:var(--ink-soft);"></i>
+      </div>
+    </div>
+  `;
 }
 
 function overviewField(key, label, value){
@@ -446,4 +462,71 @@ async function restoreFactory(id){
   f.is_deleted = false;
   showToast('Factory restored.');
   renderFactory360();
+}
+
+// ---- Permanent delete (only reachable once a factory is already archived) ----
+let deleteFactoryTargetName = '';
+function openDeleteFactoryModal(id){
+  const f = getFactory(id);
+  if(!f) return;
+  deleteFactoryTargetName = f.factory_name;
+
+  const root = document.getElementById('delete-factory-modal-root') || (() => {
+    const d = document.createElement('div');
+    d.id = 'delete-factory-modal-root';
+    document.body.appendChild(d);
+    return d;
+  })();
+
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeDeleteFactoryModal()">
+      <div class="modal-card">
+        <h3 style="color:var(--danger);">Delete permanently</h3>
+        <p class="modal-sub">This removes <strong>${escapeAttr(f.factory_name)}</strong> and all its contacts for good — there's no undo, unlike archiving. This only works if the factory has no visit or follow-up history yet; if it does, the database will refuse and nothing will be lost.</p>
+        <div class="field">
+          <label>Type the factory name to confirm</label>
+          <input id="delete-confirm-input" placeholder="${escapeAttr(f.factory_name)}" oninput="checkDeleteConfirmInput(this.value)">
+        </div>
+        <div class="modal-actions">
+          <button class="btn-tertiary" onclick="closeDeleteFactoryModal()">Cancel</button>
+          <button class="btn-primary" id="delete-confirm-btn" disabled style="width:auto;padding:9px 18px;background:var(--danger);" onclick="submitDeleteFactory('${f.id}')">Delete permanently</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('delete-confirm-input').focus();
+}
+
+function checkDeleteConfirmInput(value){
+  document.getElementById('delete-confirm-btn').disabled = (value !== deleteFactoryTargetName);
+}
+
+function closeDeleteFactoryModal(){
+  const root = document.getElementById('delete-factory-modal-root');
+  if(root) root.innerHTML = '';
+}
+
+async function submitDeleteFactory(id){
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  const { error } = await supabaseClient.from('factories').delete().eq('id', id);
+
+  if(error){
+    console.error('Failed to delete factory:', error);
+    closeDeleteFactoryModal();
+    if(error.code === '23503'){
+      alert('This factory can\'t be permanently deleted because it has visit or follow-up history attached. Archiving is the right option here — it hides it from the list without losing that history.');
+    } else {
+      alert('Could not delete this factory. Please try again.');
+    }
+    return;
+  }
+
+  sampleFactories = sampleFactories.filter(f => f.id !== id);
+  sampleContacts = sampleContacts.filter(c => c.factory_id !== id);
+  closeDeleteFactoryModal();
+  showToast('Factory deleted permanently.');
+  renderFactoriesPage();
 }
