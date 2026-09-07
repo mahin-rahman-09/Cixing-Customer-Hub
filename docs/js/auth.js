@@ -5,7 +5,8 @@
 // signed in and what role they have.
 // ============================================================
 
-let currentUserProfile = null; // { id, full_name, role, phone, is_active }
+let currentUserProfile = null; // { id, full_name, role, phone, is_active, photo_url, designation, bio }
+let currentAuthEmail = null;
 
 // ---- Helpers to move between the three screens cleanly (no flash, no stuck states) ----
 function showBootScreen(){
@@ -88,9 +89,10 @@ async function enterAppWithUser(user){
   }
 
   currentUserProfile = profile;
+  currentAuthEmail = user.email;
 
   // make dashboards/avatars reflect the real person
-  document.getElementById('user-initials').textContent = initials(profile.full_name);
+  document.getElementById('user-initials').innerHTML = avatarInnerHtml(profile);
   document.getElementById('user-name').textContent = profile.full_name;
   document.getElementById('user-role').textContent = roleLabel(profile.role);
   currentRole = (profile.role === 'admin' || profile.role === 'manager') ? 'manager' : 'sales';
@@ -118,6 +120,7 @@ function roleLabel(role){
 async function handleLogout(){
   await supabaseClient.auth.signOut();
   currentUserProfile = null;
+  currentAuthEmail = null;
   showLoginScreen();
   document.getElementById('login-email').value = '';
   document.getElementById('login-pass').value = '';

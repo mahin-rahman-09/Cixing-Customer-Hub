@@ -190,6 +190,8 @@ function openMoreSheet(){
     <div class="modal-overlay" onclick="if(event.target===this) closeMoreSheet()">
       <div class="more-sheet">
         <div class="more-sheet-handle"></div>
+        <div class="more-sheet-item" onclick="openProfilePage(); closeMoreSheet();"><i class="ti ti-user-circle"></i> My Profile</div>
+        <div class="more-sheet-divider"></div>
         <div class="more-sheet-item" data-page="visits"><i class="ti ti-clipboard-text"></i> Visits</div>
         <div class="more-sheet-item" data-page="quotations"><i class="ti ti-file-invoice"></i> Quotations <span class="tab-tag">V2</span></div>
         <div class="more-sheet-item" data-page="pipeline"><i class="ti ti-chart-funnel"></i> Pipeline <span class="tab-tag">V2</span></div>
