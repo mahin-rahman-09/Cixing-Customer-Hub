@@ -167,7 +167,7 @@ function closeVisitModal(){
 
 function submitVisit(){
   if(!visitFormFactoryId){
-    alert('Please select a factory (or add it as new) before saving.');
+    customAlert('Please select a factory (or add it as new) before saving.');
     return;
   }
   const visitType = document.getElementById('visit-type-select').value;

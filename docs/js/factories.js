@@ -306,7 +306,7 @@ function editOverviewField(el, key, isTextarea){
 
     if(error){
       console.error('Failed to save field:', error);
-      alert('Could not save that change. Please try again.');
+      customAlert('Could not save that change. Please try again.', {error:true});
     } else {
       f[key] = newVal;
     }
@@ -340,7 +340,7 @@ async function setOpportunityScore(factoryId, score){
 
   if(error){
     console.error('Failed to save opportunity score:', error);
-    alert('Could not save that change. Please try again.');
+    customAlert('Could not save that change. Please try again.', {error:true});
     return;
   }
 
@@ -378,14 +378,14 @@ function openAddFactoryModal(){
 function closeAddFactoryModal(){
   document.getElementById('add-factory-modal-root').innerHTML = '';
 }
-function submitAddFactory(){
+async function submitAddFactory(){
   const name = document.getElementById('new-factory-name').value.trim();
   const location = document.getElementById('new-factory-location').value.trim();
-  if(!name){ alert('Factory name is required.'); return; }
+  if(!name){ customAlert('Factory name is required.'); return; }
 
   const possibleDupe = sampleFactories.find(f => isSimilarName(f.factory_name, name));
-  if(possibleDupe && !document.getElementById('new-factory-name').dataset.confirmed){
-    const proceed = confirm(`A factory called "${possibleDupe.factory_name}" already exists. Add "${name}" as a separate factory anyway?`);
+  if(possibleDupe){
+    const proceed = await customConfirm(`A factory called "${possibleDupe.factory_name}" already exists. Add "${name}" as a separate factory anyway?`, { title:'Possible duplicate', confirmLabel:'Add anyway', danger:false });
     if(!proceed) return;
   }
 
@@ -404,7 +404,7 @@ async function createFactory(name, location){
 
   if(error){
     console.error('Failed to create factory:', error);
-    alert('Could not add that factory. Please try again.');
+    customAlert('Could not add that factory. Please try again.', {error:true});
     if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Add factory'; }
     return;
   }
@@ -426,7 +426,8 @@ function isSimilarName(a, b){
 async function archiveFactory(id){
   const f = getFactory(id);
   if(!f) return;
-  if(!confirm(`Archive "${f.factory_name}"? It'll be hidden from the main list but nothing is deleted — you can restore it anytime.`)) return;
+  const proceed = await customConfirm(`Archive "${f.factory_name}"? It'll be hidden from the main list but nothing is deleted — you can restore it anytime.`, { title:'Archive factory', confirmLabel:'Archive' });
+  if(!proceed) return;
 
   const { error } = await supabaseClient
     .from('factories')
@@ -435,7 +436,7 @@ async function archiveFactory(id){
 
   if(error){
     console.error('Failed to archive factory:', error);
-    alert('Could not archive this factory. Please try again.');
+    customAlert('Could not archive this factory. Please try again.', {error:true});
     return;
   }
 
@@ -455,7 +456,7 @@ async function restoreFactory(id){
 
   if(error){
     console.error('Failed to restore factory:', error);
-    alert('Could not restore this factory. Please try again.');
+    customAlert('Could not restore this factory. Please try again.', {error:true});
     return;
   }
 
@@ -517,9 +518,9 @@ async function submitDeleteFactory(id){
     console.error('Failed to delete factory:', error);
     closeDeleteFactoryModal();
     if(error.code === '23503'){
-      alert('This factory can\'t be permanently deleted because it has visit or follow-up history attached. Archiving is the right option here — it hides it from the list without losing that history.');
+      customAlert('This factory can\'t be permanently deleted because it has visit or follow-up history attached. Archiving is the right option here — it hides it from the list without losing that history.', {title:'Can\'t delete yet'});
     } else {
-      alert('Could not delete this factory. Please try again.');
+      customAlert('Could not delete this factory. Please try again.', {error:true});
     }
     return;
   }

@@ -81,7 +81,7 @@ function closeContactModal(){
 
 async function submitContact(){
   const name = document.getElementById('ct-name').value.trim();
-  if(!name){ alert('Name is required.'); return; }
+  if(!name){ customAlert('Name is required.'); return; }
 
   const values = {
     name,
@@ -104,7 +104,7 @@ async function submitContact(){
 
     if(error){
       console.error('Failed to update contact:', error);
-      alert('Could not save that contact. Please try again.');
+      customAlert('Could not save that contact. Please try again.', {error:true});
       if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; }
       return;
     }
@@ -120,7 +120,7 @@ async function submitContact(){
 
     if(error){
       console.error('Failed to create contact:', error);
-      alert('Could not add that contact. Please try again.');
+      customAlert('Could not add that contact. Please try again.', {error:true});
       if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Add contact'; }
       return;
     }
@@ -144,7 +144,7 @@ async function deactivateContact(){
 
   if(error){
     console.error('Failed to remove contact:', error);
-    alert('Could not remove this contact. Please try again.');
+    customAlert('Could not remove this contact. Please try again.', {error:true});
     return;
   }
 
@@ -165,7 +165,7 @@ async function restoreContact(){
 
   if(error){
     console.error('Failed to restore contact:', error);
-    alert('Could not restore this contact. Please try again.');
+    customAlert('Could not restore this contact. Please try again.', {error:true});
     return;
   }
 
@@ -178,13 +178,13 @@ async function restoreContact(){
 async function submitDeleteContact(){
   const ct = getContact(contactModalEditingId);
   if(!ct) return;
-  if(!confirm(`Permanently delete ${ct.name}? This can't be undone.`)) return;
+  if(!(await customConfirm(`Permanently delete ${ct.name}? This can't be undone.`, { title:'Delete permanently', confirmLabel:'Delete permanently' }))) return;
 
   const { error } = await supabaseClient.from('contacts').delete().eq('id', contactModalEditingId);
 
   if(error){
     console.error('Failed to delete contact:', error);
-    alert('Could not delete this contact. Please try again.');
+    customAlert('Could not delete this contact. Please try again.', {error:true});
     return;
   }
 

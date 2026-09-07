@@ -28,7 +28,7 @@ async function loadFactoriesAndContacts(){
 
   if(factoriesRes.error){
     console.error('Failed to load factories:', factoriesRes.error);
-    alert('Could not load factories from the database. Check the browser console for details.');
+    customAlert('Could not load factories from the database. Check the browser console for details.', {error:true});
   } else {
     sampleFactories = factoriesRes.data;
   }

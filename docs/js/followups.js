@@ -208,7 +208,7 @@ function submitFollowUpEdit(id){
   const fu = sampleFollowUps.find(f=>f.id===id);
   if(!fu) return;
   const task = document.getElementById('fu-task').value.trim();
-  if(!task){ alert('Task is required.'); return; }
+  if(!task){ customAlert('Task is required.'); return; }
 
   fu.task = task;
   fu.due_date = document.getElementById('fu-due-date').value;
