@@ -166,7 +166,7 @@ function renderFactory360(){
       <div class="f360-actions">
         <button class="btn-secondary" onclick="openVisitModal('${f.id}')"><i class="ti ti-clipboard-plus"></i> Log visit</button>
         <button class="btn-secondary" onclick="openContactModal('${f.id}')"><i class="ti ti-user-plus"></i> Add contact</button>
-        ${!f.is_deleted ? `<button class="btn-tertiary" style="color:var(--danger);" onclick="archiveFactory('${f.id}')" title="Archive"><i class="ti ti-archive"></i></button>` : ''}
+        ${!f.is_deleted ? `<button class="btn-archive" onclick="archiveFactory('${f.id}')"><i class="ti ti-archive"></i> Archive</button>` : ''}
       </div>
     </div>
 

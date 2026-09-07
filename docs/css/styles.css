@@ -450,6 +450,20 @@
     font-family:var(--font-body);font-size:13px;cursor:pointer;padding:9px 14px;
   }
   .btn-tertiary:hover{color:var(--ink);}
+  .btn-archive{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--danger-light);
+    border:1px solid transparent;
+    color:var(--danger);
+    padding:8px 14px;
+    border-radius:5px;
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .btn-archive:hover{background:var(--danger);color:#fff;}
+  .btn-archive i{font-size:15px;}
 
   /* ===== FACTORY LIST ===== */
   .list-toolbar{
