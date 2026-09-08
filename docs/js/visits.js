@@ -165,7 +165,7 @@ function closeVisitModal(){
   if(root) root.innerHTML = '';
 }
 
-function submitVisit(){
+async function submitVisit(){
   if(!visitFormFactoryId){
     customAlert('Please select a factory (or add it as new) before saving.');
     return;
@@ -177,9 +177,24 @@ function submitVisit(){
   const followUpDate = document.getElementById('visit-followup-date').value;
   const contactId = document.getElementById('visit-contact-select').value || null;
 
+  const saveBtn = document.querySelector('.visit-modal .btn-primary');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
   if(visitFormEditingId){
+    const { error } = await supabaseClient
+      .from('visits')
+      .update({ contact_id:contactId, visit_type:visitType, discussion_summary:summary, outcome, next_action:nextAction, follow_up_date:followUpDate || null, updated_at: new Date().toISOString() })
+      .eq('id', visitFormEditingId);
+
+    if(error){
+      console.error('Failed to update visit:', error);
+      customAlert('Could not save that change. Please try again.', {error:true});
+      if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; }
+      return;
+    }
+
     const v = sampleVisits.find(x=>x.id===visitFormEditingId);
-    Object.assign(v, { contact_id:contactId, visit_type:visitType, discussion_summary:summary, outcome, next_action:nextAction, follow_up_date:followUpDate });
+    Object.assign(v, { contact_id:contactId, visit_type:visitType, discussion_summary:summary, outcome, next_action:nextAction, follow_up_date:followUpDate || null });
     closeVisitModal();
     showToast('Visit updated.');
     if(currentFactoryId === visitFormFactoryId && document.getElementById('f360-tab-content')){
@@ -189,36 +204,54 @@ function submitVisit(){
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const visitId = 'v' + Date.now();
 
-  sampleVisits.push({
-    id: visitId,
-    factory_id: visitFormFactoryId,
-    contact_id: contactId,
-    employee: currentRole==='manager' ? 'Nasrin Akter' : 'Rafiqul Haque',
-    visit_date: today,
-    visit_type: visitType,
-    discussion_summary: summary,
-    outcome: outcome,
-    next_action: nextAction,
-    follow_up_date: followUpDate
-  });
+  const { data: newVisit, error } = await supabaseClient
+    .from('visits')
+    .insert({
+      factory_id: visitFormFactoryId,
+      contact_id: contactId,
+      employee_id: currentUserProfile.id,
+      visit_date: today,
+      visit_type: visitType,
+      discussion_summary: summary,
+      outcome: outcome,
+      next_action: nextAction,
+      follow_up_date: followUpDate || null,
+    })
+    .select()
+    .single();
 
-  // update the factory's last_visit_date
-  const factory = getFactory(visitFormFactoryId);
-  if(factory) factory.last_visit_date = today;
+  if(error){
+    console.error('Failed to save visit:', error);
+    customAlert('Could not save that visit. Please try again.', {error:true});
+    if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save visit'; }
+    return;
+  }
+
+  sampleVisits.unshift(newVisit);
 
   // auto-create a follow-up if a next action + date were given
   if(nextAction && followUpDate){
-    sampleFollowUps.push({
-      id: 'fu' + Date.now(),
-      factory_id: visitFormFactoryId,
-      task: nextAction,
-      responsible_employee: currentRole==='manager' ? 'Nasrin Akter' : 'Rafiqul Haque',
-      due_date: followUpDate,
-      priority: 'Medium',
-      status: 'Pending'
-    });
+    const { data: newFollowUp, error: fuError } = await supabaseClient
+      .from('follow_ups')
+      .insert({
+        factory_id: visitFormFactoryId,
+        visit_id: newVisit.id,
+        task: nextAction,
+        responsible_employee_id: currentUserProfile.id,
+        due_date: followUpDate,
+        priority: 'Medium',
+        status: 'Pending',
+      })
+      .select()
+      .single();
+
+    if(fuError){
+      console.error('Failed to auto-create follow-up:', fuError);
+      // the visit itself still saved fine, so don't block on this — just note it
+    } else {
+      sampleFollowUps.push(newFollowUp);
+    }
   }
 
   closeVisitModal();

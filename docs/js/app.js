@@ -33,78 +33,145 @@ function firstName(){
   return name.split(' ')[0];
 }
 
+function timeAgo(dateStr){
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if(mins < 1) return 'Just now';
+  if(mins < 60) return `${mins} minute${mins===1?'':'s'} ago`;
+  const hours = Math.round(mins / 60);
+  if(hours < 24) return `${hours} hour${hours===1?'':'s'} ago`;
+  const days = Math.round(hours / 24);
+  if(days === 1) return 'Yesterday';
+  if(days < 7) return `${days} days ago`;
+  return formatDate(dateStr);
+}
+
+function isThisMonth(dateStr){
+  if(!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+}
+
 function salesDashboard(){
+  const myId = currentUserProfile ? currentUserProfile.id : null;
+  const cats = categorizeFollowUps(); // company-wide categorized lists
+  const myToday = cats.today.filter(f=>f.responsible_employee_id===myId);
+  const myOverdue = cats.overdue.filter(f=>f.responsible_employee_id===myId);
+  const myWeek = cats.week.filter(f=>f.responsible_employee_id===myId);
+  const myVisitsThisMonth = sampleVisits.filter(v=>v.employee_id===myId && isThisMonth(v.visit_date));
+
+  const dueRows = [...myOverdue, ...myToday].slice(0,6);
+  const recentVisits = sampleVisits.slice().sort((a,b)=> new Date(b.created_at)-new Date(a.created_at)).slice(0,5);
+
   return `
     <div class="page-head">
       <h1>Good morning, ${firstName()}</h1>
       <div class="date">${today}</div>
     </div>
     <div class="tiles">
-      <div class="tile"><div class="label">Today's follow-ups</div><div class="value">3</div></div>
-      <div class="tile warn"><div class="label">Overdue</div><div class="value">1</div></div>
-      <div class="tile"><div class="label">Upcoming visits (7 days)</div><div class="value">5</div></div>
-      <div class="tile"><div class="label">Pending quotations</div><div class="value">2</div></div>
+      <div class="tile" onclick="renderPage('followups')"><div class="label">Today's follow-ups</div><div class="value">${myToday.length}</div></div>
+      <div class="tile ${myOverdue.length>0?'warn':''}" onclick="renderPage('followups')"><div class="label">Overdue</div><div class="value">${myOverdue.length}</div></div>
+      <div class="tile" onclick="renderPage('followups')"><div class="label">Due this week</div><div class="value">${myWeek.length}</div></div>
+      <div class="tile"><div class="label">Visits logged (this month)</div><div class="value">${myVisitsThisMonth.length}</div></div>
     </div>
     <div class="grid-2">
       <div class="panel">
-        <div class="panel-head"><h2>Follow-ups due</h2><span class="see-all">See all</span></div>
+        <div class="panel-head"><h2>Follow-ups due</h2><span class="see-all" onclick="renderPage('followups')">See all</span></div>
+        ${dueRows.length ? `
         <table class="ledger">
           <thead><tr><th>Factory</th><th>Task</th><th>Due</th><th>Priority</th></tr></thead>
           <tbody>
-            <tr><td class="factory-name">Anwar Sweaters Ltd.</td><td>Send revised quotation</td><td class="rec-id">Today</td><td><span class="priority-dot high"></span>High</td></tr>
-            <tr><td class="factory-name">Delta Knitwear Group</td><td>Call re: financing terms</td><td class="rec-id">Today</td><td><span class="priority-dot medium"></span>Medium</td></tr>
-            <tr><td class="factory-name">Padma Fashions</td><td>Confirm demo date</td><td class="rec-id">Tomorrow</td><td><span class="priority-dot medium"></span>Medium</td></tr>
-            <tr><td class="factory-name">Sonar Bangla Textiles</td><td>Follow up on PO status</td><td class="rec-id" style="color:var(--danger)">2 days overdue</td><td><span class="priority-dot high"></span>High</td></tr>
+            ${dueRows.map(fu => {
+              const f = getFactory(fu.factory_id);
+              const days = daysBetween(fu.due_date);
+              const dueLabel = days < 0 ? `${Math.abs(days)} day${Math.abs(days)===1?'':'s'} overdue` : days===0 ? 'Today' : formatDate(fu.due_date);
+              const dueStyle = days < 0 ? 'color:var(--danger)' : '';
+              return `<tr onclick="openFollowUpModal('${fu.id}')" style="cursor:pointer;">
+                <td class="factory-name">${f ? f.factory_name : '—'}</td>
+                <td>${fu.task}</td>
+                <td class="rec-id" style="${dueStyle}">${dueLabel}</td>
+                <td><span class="priority-dot ${fu.priority.toLowerCase()}"></span>${fu.priority}</td>
+              </tr>`;
+            }).join('')}
           </tbody>
-        </table>
+        </table>` : `<div class="empty" style="border:none;"><p>Nothing due right now — nice work.</p></div>`}
       </div>
       <div class="panel">
         <div class="panel-head"><h2>Recent activity</h2></div>
+        ${recentVisits.length ? `
         <div class="feed">
-          <div class="feed-item"><div class="feed-avatar">NA</div><div class="feed-body"><p><span class="who">Nasrin Akter</span> logged a visit at Delta Knitwear Group</p><div class="when">2 hours ago</div></div></div>
-          <div class="feed-item"><div class="feed-avatar">MK</div><div class="feed-body"><p><span class="who">Mahmud Kabir</span> sent a quotation to Anwar Sweaters Ltd.</p><div class="when">Yesterday</div></div></div>
-          <div class="feed-item"><div class="feed-avatar">RH</div><div class="feed-body"><p><span class="who">You</span> added a new factory: Padma Fashions</p><div class="when">Yesterday</div></div></div>
-          <div class="feed-item"><div class="feed-avatar">NA</div><div class="feed-body"><p><span class="who">Nasrin Akter</span> marked a follow-up complete at Sonar Bangla Textiles</p><div class="when">2 days ago</div></div></div>
-        </div>
+          ${recentVisits.map(v => {
+            const f = getFactory(v.factory_id);
+            const empName = getEmployeeName(v.employee_id);
+            const isMe = v.employee_id === myId;
+            return `<div class="feed-item"><div class="feed-avatar">${initials(empName)}</div><div class="feed-body"><p><span class="who">${isMe ? 'You' : empName}</span> logged a visit at ${f ? f.factory_name : 'a factory'}</p><div class="when">${timeAgo(v.created_at)}</div></div></div>`;
+          }).join('')}
+        </div>` : `<div class="empty" style="border:none;"><p>No visits logged yet. Once you log one, it'll show up here.</p></div>`}
       </div>
     </div>
   `;
 }
 
 function managementDashboard(){
+  const activeFactories = sampleFactories.filter(f=>!f.is_deleted);
+  const openFollowUps = sampleFollowUps.filter(f=>f.status!=='Completed');
+  const overdueFollowUps = openFollowUps.filter(f=>daysBetween(f.due_date)<0);
+  const visitsThisMonth = sampleVisits.filter(v=>isThisMonth(v.visit_date));
+
+  // needs attention: overdue follow-ups + factories quiet for 60+ days
+  const attentionRows = [];
+  overdueFollowUps.slice(0,5).forEach(fu=>{
+    const f = getFactory(fu.factory_id);
+    const days = Math.abs(daysBetween(fu.due_date));
+    attentionRows.push({ factory: f ? f.factory_name : '—', issue: `Follow-up ${days} day${days===1?'':'s'} overdue`, owner: getEmployeeName(fu.responsible_employee_id) });
+  });
+  activeFactories.forEach(f=>{
+    const last = getLastVisitDate(f.id);
+    if(last){
+      const days = Math.abs(daysBetween(last));
+      if(days >= 60) attentionRows.push({ factory: f.factory_name, issue: `No visit logged in ${days} days`, owner: '—' });
+    }
+  });
+
+  // visits this month, grouped by employee
+  const visitCounts = {};
+  visitsThisMonth.forEach(v=>{ visitCounts[v.employee_id] = (visitCounts[v.employee_id]||0) + 1; });
+  const visitLeaderboard = Object.entries(visitCounts)
+    .map(([empId, count])=>({ name: getEmployeeName(empId), count }))
+    .sort((a,b)=>b.count-a.count);
+
   return `
     <div class="page-head">
       <h1>Overview</h1>
       <div class="date">${today}</div>
     </div>
     <div class="tiles">
-      <div class="tile"><div class="label">Total factories</div><div class="value">184</div></div>
-      <div class="tile"><div class="label">Active opportunities</div><div class="value">27</div></div>
-      <div class="tile warn"><div class="label">Pending follow-ups</div><div class="value">12</div></div>
-      <div class="tile"><div class="label">Quotations sent</div><div class="value">9</div></div>
+      <div class="tile" onclick="renderPage('factories')"><div class="label">Total factories</div><div class="value">${activeFactories.length}</div></div>
+      <div class="tile" onclick="renderPage('followups')"><div class="label">Pending follow-ups</div><div class="value">${openFollowUps.length}</div></div>
+      <div class="tile ${overdueFollowUps.length>0?'warn':''}" onclick="renderPage('followups')"><div class="label">Overdue follow-ups</div><div class="value">${overdueFollowUps.length}</div></div>
+      <div class="tile"><div class="label">Visits this month</div><div class="value">${visitsThisMonth.length}</div></div>
     </div>
     <div class="grid-2">
       <div class="panel">
         <div class="panel-head"><h2>Needs attention</h2></div>
+        ${attentionRows.length ? `
         <table class="ledger">
           <thead><tr><th>Factory</th><th>Issue</th><th>Owner</th></tr></thead>
           <tbody>
-            <tr><td class="factory-name">Sonar Bangla Textiles</td><td>Follow-up 2 days overdue</td><td class="rec-id">R. Haque</td></tr>
-            <tr><td class="factory-name">Green Valley Apparels</td><td>No visit logged in 65 days</td><td class="rec-id">M. Kabir</td></tr>
-            <tr><td class="factory-name">Anwar Sweaters Ltd.</td><td>Quotation stalled 16 days</td><td class="rec-id">R. Haque</td></tr>
+            ${attentionRows.slice(0,8).map(r=>`<tr><td class="factory-name">${r.factory}</td><td>${r.issue}</td><td class="rec-id">${r.owner}</td></tr>`).join('')}
           </tbody>
-        </table>
+        </table>` : `<div class="empty" style="border:none;"><p>Nothing needs attention right now.</p></div>`}
       </div>
       <div class="panel">
         <div class="panel-head"><h2>Visits this month by employee</h2></div>
+        ${visitLeaderboard.length ? `
         <table class="ledger">
           <thead><tr><th>Employee</th><th>Visits</th></tr></thead>
           <tbody>
-            <tr><td>Rafiqul Haque</td><td class="rec-id">14</td></tr>
-            <tr><td>Mahmud Kabir</td><td class="rec-id">11</td></tr>
-            <tr><td>Nasrin Akter</td><td class="rec-id">9</td></tr>
+            ${visitLeaderboard.map(r=>`<tr><td>${r.name}</td><td class="rec-id">${r.count}</td></tr>`).join('')}
           </tbody>
-        </table>
+        </table>` : `<div class="empty" style="border:none;"><p>No visits logged yet this month.</p></div>`}
       </div>
     </div>
   `;

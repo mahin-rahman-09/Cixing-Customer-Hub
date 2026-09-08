@@ -98,14 +98,14 @@ async function enterAppWithUser(user){
   currentRole = (profile.role === 'admin' || profile.role === 'manager') ? 'manager' : 'sales';
 
   // so this person shows up in the follow-up "assigned to" dropdown, etc.
-  if(typeof sampleEmployees !== 'undefined' && !sampleEmployees.includes(profile.full_name)){
-    sampleEmployees.unshift(profile.full_name);
-  }
+  // (real employee list now loads from the database in loadAllData(), so
+  // no placeholder patching needed here anymore)
 
-  // load real factories + contacts before showing any screen that depends on them
+  // load real factories, contacts, visits, follow-ups, and employees
+  // before showing any screen that depends on them
   const btn = document.getElementById('login-btn');
   if(btn) btn.textContent = 'Loading your data...';
-  await loadFactoriesAndContacts();
+  await loadAllData();
 
   showAppScreen();
   renderPage('home');

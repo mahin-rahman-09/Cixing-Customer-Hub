@@ -103,9 +103,15 @@ function renderFactoryTableBody(){
   });
 
   rows.sort((a,b)=>{
-    let av = a[factorySort.key] ?? '';
-    let bv = b[factorySort.key] ?? '';
-    if(factorySort.key==='opportunity_score'){ av=Number(av); bv=Number(bv); }
+    let av, bv;
+    if(factorySort.key==='last_visit_date'){
+      av = getLastVisitDate(a.id) ?? '';
+      bv = getLastVisitDate(b.id) ?? '';
+    } else {
+      av = a[factorySort.key] ?? '';
+      bv = b[factorySort.key] ?? '';
+      if(factorySort.key==='opportunity_score'){ av=Number(av); bv=Number(bv); }
+    }
     if(av < bv) return -1*factorySort.dir;
     if(av > bv) return 1*factorySort.dir;
     return 0;
@@ -120,7 +126,7 @@ function renderFactoryTableBody(){
       <td data-label="Location">${f.location || '—'}</td>
       <td data-label="Type">${f.factory_type || '—'}</td>
       <td data-label="Opportunity">${opportunityStars(f.opportunity_score)}</td>
-      <td class="rec-id" data-label="Last visit">${formatDate(f.last_visit_date)}</td>
+      <td class="rec-id" data-label="Last visit">${formatDate(getLastVisitDate(f.id))}</td>
     </tr>
   `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px;">No factories match your filters.</td></tr>`;
 }
@@ -239,7 +245,7 @@ function renderFactoryTabContent(f, contacts, visits){
           <div class="visit-entry visit-entry-clickable" onclick="openVisitModal('${f.id}','${v.id}')">
             <div class="visit-entry-head">
               <span class="stage-pill">${v.visit_type}</span>
-              <span class="rec-id">${formatDate(v.visit_date)} · ${v.employee}</span>
+              <span class="rec-id">${formatDate(v.visit_date)} · ${getEmployeeName(v.employee_id)}</span>
               <i class="ti ti-pencil visit-edit-icon"></i>
             </div>
             <p class="visit-summary">${v.discussion_summary || ''}</p>

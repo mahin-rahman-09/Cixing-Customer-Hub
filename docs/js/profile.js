@@ -85,9 +85,9 @@ function avatarInnerHtml(p){
 }
 
 function computeMyStats(profile){
-  const myVisits = sampleVisits.filter(v => v.employee === profile.full_name);
+  const myVisits = sampleVisits.filter(v => v.employee_id === profile.id);
   const uniqueFactories = new Set(myVisits.map(v => v.factory_id));
-  const activeFollowUps = sampleFollowUps.filter(f => f.responsible_employee === profile.full_name && f.status !== 'Completed');
+  const activeFollowUps = sampleFollowUps.filter(f => f.responsible_employee_id === profile.id && f.status !== 'Completed');
   return {
     factoriesVisited: uniqueFactories.size,
     activeFollowUps: activeFollowUps.length,

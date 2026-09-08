@@ -100,7 +100,7 @@ function followUpRow(fu){
       <td class="factory-name" data-label="Factory">${f ? f.factory_name : '—'}</td>
       <td data-label="Task" class="followup-task" style="${isDone ? 'text-decoration:line-through;' : ''}" onclick="openFollowUpModal('${fu.id}')">${fu.task}</td>
       <td class="rec-id" data-label="Due" style="${dueStyle}">${dueLabel}</td>
-      <td data-label="Owner" class="rec-id">${fu.responsible_employee || '—'}</td>
+      <td data-label="Owner" class="rec-id">${getEmployeeName(fu.responsible_employee_id)}</td>
       <td data-label="Priority"><span class="priority-dot ${priorityClass}"></span>${fu.priority}</td>
       <td data-label="Status"><span class="stage-pill ${isDone ? 'success' : ''}">${fu.status}</span></td>
       <td data-label="" style="text-align:right;white-space:nowrap;">
@@ -114,12 +114,23 @@ function followUpRow(fu){
   `;
 }
 
-function completeFollowUp(id){
+async function completeFollowUp(id){
   const fu = sampleFollowUps.find(f=>f.id===id);
-  if(fu){
-    fu.status = 'Completed';
-    fu.completed_at = new Date().toISOString();
+  if(!fu) return;
+
+  const { error } = await supabaseClient
+    .from('follow_ups')
+    .update({ status:'Completed', completed_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if(error){
+    console.error('Failed to complete follow-up:', error);
+    customAlert('Could not mark that complete. Please try again.', {error:true});
+    return;
   }
+
+  fu.status = 'Completed';
+  fu.completed_at = new Date().toISOString();
   renderFollowUpTabs();
   renderFollowUpList();
   updateFollowUpBadge();
@@ -176,7 +187,7 @@ function openFollowUpModal(id){
           <div class="field">
             <label>Assigned to</label>
             <select id="fu-employee">
-              ${sampleEmployees.map(e=>`<option value="${e}" ${fu.responsible_employee===e?'selected':''}>${e}</option>`).join('')}
+              ${sampleEmployees.map(e=>`<option value="${e.id}" ${fu.responsible_employee_id===e.id?'selected':''}>${e.full_name}</option>`).join('')}
             </select>
           </div>
           <div class="field">
@@ -204,20 +215,34 @@ function closeFollowUpModal(){
   if(root) root.innerHTML = '';
 }
 
-function submitFollowUpEdit(id){
+async function submitFollowUpEdit(id){
   const fu = sampleFollowUps.find(f=>f.id===id);
   if(!fu) return;
   const task = document.getElementById('fu-task').value.trim();
   if(!task){ customAlert('Task is required.'); return; }
 
-  fu.task = task;
-  fu.due_date = document.getElementById('fu-due-date').value;
-  fu.priority = document.getElementById('fu-priority').value;
-  fu.responsible_employee = document.getElementById('fu-employee').value;
-  const newStatus = document.getElementById('fu-status').value;
-  if(newStatus === 'Completed' && fu.status !== 'Completed'){ fu.completed_at = new Date().toISOString(); }
-  fu.status = newStatus;
+  const updates = {
+    task,
+    due_date: document.getElementById('fu-due-date').value,
+    priority: document.getElementById('fu-priority').value,
+    responsible_employee_id: document.getElementById('fu-employee').value,
+    status: document.getElementById('fu-status').value,
+  };
+  if(updates.status === 'Completed' && fu.status !== 'Completed'){ updates.completed_at = new Date().toISOString(); }
 
+  const saveBtn = document.querySelector('#followup-modal-root .btn-primary');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
+  const { error } = await supabaseClient.from('follow_ups').update(updates).eq('id', id);
+
+  if(error){
+    console.error('Failed to update follow-up:', error);
+    customAlert('Could not save that change. Please try again.', {error:true});
+    if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; }
+    return;
+  }
+
+  Object.assign(fu, updates);
   closeFollowUpModal();
   renderFollowUpTabs();
   renderFollowUpList();
