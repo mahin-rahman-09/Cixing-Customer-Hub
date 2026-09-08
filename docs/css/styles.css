@@ -917,3 +917,30 @@
   .profile-sub{font-size:13px;color:var(--ink-soft);}
   .spin{animation:spin 1s linear infinite;}
   @keyframes spin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  /* ===== IMAGE CROP MODAL ===== */
+  .crop-modal{width:340px;}
+  .crop-viewport{
+    width:260px;height:260px;
+    margin:0 auto 18px;
+    border-radius:50%;
+    overflow:hidden;
+    position:relative;
+    background:var(--canvas);
+    border:2px solid var(--line-strong);
+    cursor:grab;
+    touch-action:none;
+  }
+  .crop-viewport:active{cursor:grabbing;}
+  #crop-image{
+    position:absolute;
+    left:0;top:0;
+    user-select:none;
+    -webkit-user-drag:none;
+    pointer-events:none; /* dragging is handled by the viewport, not the image itself */
+  }
+  #crop-zoom{
+    width:100%;
+    margin:0 0 20px;
+    accent-color:var(--steel);
+  }

@@ -139,6 +139,7 @@ function editProfileField(el, key, isTextarea){
 // ---- Photo upload ----
 async function onAvatarFileSelected(event){
   const file = event.target.files[0];
+  event.target.value = ''; // allow selecting the same file again later
   if(!file) return;
 
   if(!file.type.startsWith('image/')){
@@ -150,16 +151,18 @@ async function onAvatarFileSelected(event){
     return;
   }
 
+  const croppedBlob = await openImageCropModal(file);
+  if(!croppedBlob) return; // cancelled
+
   const p = currentUserProfile;
   const display = document.getElementById('profile-avatar-display');
   display.innerHTML = `<i class="ti ti-loader-2 spin"></i>`;
 
-  const ext = file.name.split('.').pop();
-  const path = `${p.id}.${ext}`;
+  const path = `${p.id}.jpg`; // canvas export is always JPEG now, regardless of the original file type
 
   const { error: uploadError } = await supabaseClient.storage
     .from('avatars')
-    .upload(path, file, { upsert: true });
+    .upload(path, croppedBlob, { upsert: true, contentType: 'image/jpeg' });
 
   if(uploadError){
     console.error('Failed to upload photo:', uploadError);
