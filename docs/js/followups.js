@@ -104,10 +104,10 @@ function followUpRow(fu){
       <td data-label="Priority"><span class="priority-dot ${priorityClass}"></span>${fu.priority}</td>
       <td data-label="Status"><span class="stage-pill ${isDone ? 'success' : ''}">${fu.status}</span></td>
       <td data-label="" style="text-align:right;white-space:nowrap;">
-        <button class="row-action" title="Edit" onclick="openFollowUpModal('${fu.id}')"><i class="ti ti-pencil"></i></button>
+        <button class="row-action-text" onclick="openFollowUpModal('${fu.id}')">Edit</button>
         ${!isDone ? `
-          <button class="row-action" title="Mark complete" onclick="completeFollowUp('${fu.id}')"><i class="ti ti-check"></i></button>
-          <button class="row-action" title="Log a visit" onclick="openVisitModal('${fu.factory_id}')"><i class="ti ti-clipboard-plus"></i></button>
+          <button class="row-action-text" onclick="completeFollowUp('${fu.id}')">Complete</button>
+          <button class="row-action-text" onclick="openVisitModal('${fu.factory_id}')">Log visit</button>
         ` : ''}
       </td>
     </tr>

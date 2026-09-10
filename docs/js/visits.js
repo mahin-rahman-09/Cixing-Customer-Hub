@@ -383,7 +383,7 @@ function renderVisitTableBody(){
       <td data-label="Type"><span class="stage-pill">${v.visit_type}</span></td>
       <td data-label="Summary">${truncateText(v.discussion_summary, 70)}</td>
       <td data-label="" style="text-align:right;">
-        <button class="row-action" title="View factory" onclick="event.stopPropagation(); openFactory('${v.factory_id}')"><i class="ti ti-arrow-up-right"></i></button>
+        <button class="row-action-text" onclick="event.stopPropagation(); openFactory('${v.factory_id}')">View factory</button>
       </td>
     </tr>
   `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px;">No visits match your filters.</td></tr>`;

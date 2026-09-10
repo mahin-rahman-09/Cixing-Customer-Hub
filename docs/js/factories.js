@@ -246,10 +246,10 @@ function renderFactoryTabContent(f, contacts, visits){
             <div class="visit-entry-head">
               <span class="stage-pill">${v.visit_type}</span>
               <span class="rec-id">${formatDate(v.visit_date)} · ${getEmployeeName(v.employee_id)}</span>
-              <i class="ti ti-pencil visit-edit-icon"></i>
+              <span class="visit-edit-label">Edit</span>
             </div>
             <p class="visit-summary">${v.discussion_summary || ''}</p>
-            ${v.next_action ? `<p class="visit-next"><i class="ti ti-arrow-right"></i> ${v.next_action}${v.follow_up_date ? ' — by '+formatDate(v.follow_up_date) : ''}</p>` : ''}
+            ${v.next_action ? `<p class="visit-next">→ ${v.next_action}${v.follow_up_date ? ' — by '+formatDate(v.follow_up_date) : ''}</p>` : ''}
           </div>
         `).join('')}</div>` : `<div class="empty" style="border:none;"><p>No visits logged yet for this factory.</p></div>`}
       </div>
