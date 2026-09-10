@@ -23,6 +23,8 @@ function renderPage(page){
     renderFactoriesPage();
   } else if(page==='followups'){
     renderFollowUpsPage();
+  } else if(page==='visits'){
+    renderVisitsPage();
   } else {
     c.innerHTML = placeholder(page);
   }
@@ -179,7 +181,6 @@ function managementDashboard(){
 
 function placeholder(page){
   const names = {
-    visits:['Visit history','A logged, searchable list of every factory visit — the core habit this whole system is built around.','Step 3'],
     quotations:['Quotation management','Draft through accepted, with line items and full status history.','Version 2'],
     pipeline:['Sales pipeline','Stage-grouped view of every open opportunity, for management.','Version 2'],
     machines:['Machine ownership','Serial numbers, warranty status, and install history per factory.','Version 3'],

@@ -275,3 +275,121 @@ function showToast(msg){
   setTimeout(()=>t.classList.add('toast-show'), 10);
   setTimeout(()=>{ t.classList.remove('toast-show'); setTimeout(()=>t.remove(), 300); }, 3000);
 }
+
+// ============================================================
+// VISIT HISTORY (global list, across every factory)
+// ============================================================
+
+let visitSearch = '';
+let visitFilters = { employee:'', visitType:'' };
+let visitSort = { key:'visit_date', dir:-1 }; // newest first by default
+
+function renderVisitsPage(){
+  const c = document.getElementById('content');
+  const visitTypesUsed = [...new Set(sampleVisits.map(v=>v.visit_type))].sort();
+
+  c.innerHTML = `
+    <div class="page-head"><h1>Visit History</h1></div>
+    <div class="list-toolbar">
+      <div class="topbar-search" style="width:240px;">
+        <i class="ti ti-search"></i>
+        <input id="visit-search-input" placeholder="Search factory or summary..." value="${visitSearch}">
+      </div>
+      <select id="filter-visit-employee" class="filter-select" onchange="onVisitFilterChange()">
+        <option value="">All employees</option>
+        ${sampleEmployees.map(e=>`<option value="${e.id}" ${visitFilters.employee===e.id?'selected':''}>${e.full_name}</option>`).join('')}
+      </select>
+      <select id="filter-visit-type" class="filter-select" onchange="onVisitFilterChange()">
+        <option value="">All visit types</option>
+        ${visitTypesUsed.map(t=>`<option value="${t}" ${visitFilters.visitType===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <div class="result-count" id="visit-result-count"></div>
+    </div>
+    <div class="panel">
+      <table class="ledger" id="visit-table">
+        <thead>
+          <tr>
+            <th class="sortable" data-key="visit_date">Date <i class="ti ti-arrows-sort"></i></th>
+            <th class="sortable" data-key="factory_name">Factory <i class="ti ti-arrows-sort"></i></th>
+            <th class="sortable" data-key="employee_name">Employee <i class="ti ti-arrows-sort"></i></th>
+            <th>Visit type</th>
+            <th>Summary</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="visit-table-body"></tbody>
+      </table>
+    </div>
+  `;
+
+  document.getElementById('visit-search-input').addEventListener('input', (e)=>{
+    visitSearch = e.target.value;
+    renderVisitTableBody();
+  });
+
+  document.querySelectorAll('#visit-table th.sortable').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(visitSort.key === key){ visitSort.dir *= -1; }
+      else { visitSort = { key, dir: key==='visit_date' ? -1 : 1 }; }
+      renderVisitTableBody();
+    });
+  });
+
+  renderVisitTableBody();
+}
+
+function onVisitFilterChange(){
+  visitFilters.employee = document.getElementById('filter-visit-employee').value;
+  visitFilters.visitType = document.getElementById('filter-visit-type').value;
+  renderVisitTableBody();
+}
+
+function renderVisitTableBody(){
+  const term = visitSearch.trim().toLowerCase();
+  let rows = sampleVisits.filter(v=>{
+    const f = getFactory(v.factory_id);
+    const factoryName = f ? f.factory_name.toLowerCase() : '';
+    const matchesTerm = !term || factoryName.includes(term) || (v.discussion_summary||'').toLowerCase().includes(term);
+    if(!matchesTerm) return false;
+    if(visitFilters.employee && v.employee_id !== visitFilters.employee) return false;
+    if(visitFilters.visitType && v.visit_type !== visitFilters.visitType) return false;
+    return true;
+  });
+
+  rows = rows.map(v=>({
+    ...v,
+    _factory_name: getFactory(v.factory_id) ? getFactory(v.factory_id).factory_name : '—',
+    _employee_name: getEmployeeName(v.employee_id),
+  }));
+
+  rows.sort((a,b)=>{
+    let av, bv;
+    if(visitSort.key==='factory_name'){ av=a._factory_name; bv=b._factory_name; }
+    else if(visitSort.key==='employee_name'){ av=a._employee_name; bv=b._employee_name; }
+    else { av=a[visitSort.key]||''; bv=b[visitSort.key]||''; }
+    if(av<bv) return -1*visitSort.dir;
+    if(av>bv) return 1*visitSort.dir;
+    return 0;
+  });
+
+  document.getElementById('visit-result-count').textContent = `${rows.length} visit${rows.length===1?'':'s'}`;
+
+  document.getElementById('visit-table-body').innerHTML = rows.map(v=>`
+    <tr onclick="openVisitModal('${v.factory_id}','${v.id}')">
+      <td class="rec-id" data-label="Date">${formatDate(v.visit_date)}</td>
+      <td class="factory-name" data-label="Factory">${v._factory_name}</td>
+      <td data-label="Employee">${v._employee_name}</td>
+      <td data-label="Type"><span class="stage-pill">${v.visit_type}</span></td>
+      <td data-label="Summary">${truncateText(v.discussion_summary, 70)}</td>
+      <td data-label="" style="text-align:right;">
+        <button class="row-action" title="View factory" onclick="event.stopPropagation(); openFactory('${v.factory_id}')"><i class="ti ti-arrow-up-right"></i></button>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px;">No visits match your filters.</td></tr>`;
+}
+
+function truncateText(str, maxLen){
+  if(!str) return '—';
+  return str.length > maxLen ? str.slice(0,maxLen).trim() + '…' : str;
+}
